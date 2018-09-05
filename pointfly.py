@@ -1,4 +1,3 @@
-# coding=utf-8
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -26,7 +25,7 @@ def get_indices(batch_size, sample_num, point_num, pool_setting=None):
             if isinstance(pool_setting, int):
                 pool_size = min(pool_setting, pt_num)
             elif isinstance(pool_setting, tuple):
-                pool_size = min(random.randrange(pool_setting[0], pool_setting[1] + 1), pt_num)
+                pool_size = min(random.randrange(pool_setting[0], pool_setting[1]+1), pt_num)
         if pool_size > sample_num:
             choices = np.random.choice(pool_size, sample_num, replace=False)
         else:
@@ -142,7 +141,7 @@ def find_duplicate_columns(A):
 # add a big value to duplicate columns
 def prepare_for_unique_top_k(D, A):
     indices_duplicated = tf.py_func(find_duplicate_columns, [A], tf.int32)
-    D += tf.reduce_max(D) * tf.cast(indices_duplicated, tf.float32)
+    D += tf.reduce_max(D)*tf.cast(indices_duplicated, tf.float32)
 
 
 # return shape is (N, P, K, 2)
@@ -296,25 +295,23 @@ def inverse_density_sampling(points, k, sample_num):
 
     return indices
 
-
-def top_1_accuracy(probs, labels, weights=None, weights_threshold=None, threshole_direction="greater", is_partial=None,
-                   num=None):
+def top_1_accuracy(probs, labels, weights=None, weights_threshold=None, threshole_direction = "greater" ,is_partial=None, num=None):
     if is_partial is not None:
         probs = tf.cond(is_partial, lambda: probs[0:num, ...], lambda: probs)
         labels = tf.cond(is_partial, lambda: labels[0:num, ...], lambda: labels)
-
+    
     if weights is not None:
         if weights_threshold is not None:
             if threshole_direction == "greater":
-                hold_indices = tf.greater(weights, tf.zeros_like(weights) + tf.fill([1], weights_threshold))
+                hold_indices = tf.greater(weights,tf.zeros_like(weights) + tf.fill([1],weights_threshold))
             if threshole_direction == "less":
-                hold_indices = tf.less(weights, tf.zeros_like(weights) + tf.fill([1], weights_threshold))
+                hold_indices = tf.less(weights,tf.zeros_like(weights) + tf.fill([1],weights_threshold))
         else:
-            # ignore zero weight class
-            hold_indices = tf.greater(weights, tf.zeros_like(weights))
+            #ignore zero weight class
+            hold_indices = tf.greater(weights,tf.zeros_like(weights))
 
-        probs = tf.boolean_mask(probs, hold_indices)
-        labels = tf.boolean_mask(labels, hold_indices)
+        probs = tf.boolean_mask(probs,hold_indices)
+        labels = tf.boolean_mask(labels,hold_indices)
 
     probs_2d = tf.reshape(probs, (-1, tf.shape(probs)[-1]))
     labels_1d = tf.reshape(labels, [-1])
@@ -322,7 +319,6 @@ def top_1_accuracy(probs, labels, weights=None, weights_threshold=None, threshol
     top_1_acc = tf.reduce_mean(tf.cast(in_top_1, tf.float32), name='top_1_accuracy')
 
     return top_1_acc
-
 
 def batch_normalization(data, is_training, name, reuse=None):
     return tf.layers.batch_normalization(data, momentum=0.99, training=is_training,
@@ -357,8 +353,7 @@ def depthwise_conv2d(input, depth_multiplier, name, is_training, kernel_size,
                                                 reuse=reuse, scope=name)
     return batch_normalization(conv2d, is_training, name + '_bn', reuse) if with_bn else conv2d
 
-
-def conv2d(input, output, name, is_training, kernel_size, strides=(1, 1), padding='VALID',
+def conv2d(input, output, name, is_training, kernel_size,strides=(1, 1),padding='VALID',
            reuse=None, with_bn=True, activation=tf.nn.elu):
     conv2d = tf.layers.conv2d(input, output, kernel_size=kernel_size, strides=strides, padding=padding,
                               activation=activation,
@@ -368,36 +363,9 @@ def conv2d(input, output, name, is_training, kernel_size, strides=(1, 1), paddin
     return batch_normalization(conv2d, is_training, name + '_bn', reuse) if with_bn else conv2d
 
 
-def dense(input, output, name, is_training, reuse=tf.AUTO_REUSE, with_bn=True, activation=tf.nn.elu):
+def dense(input, output, name, is_training, reuse=None, with_bn=True, activation=tf.nn.elu):
     dense = tf.layers.dense(input, units=output, activation=activation,
                             kernel_initializer=tf.glorot_normal_initializer(),
                             kernel_regularizer=tf.contrib.layers.l2_regularizer(scale=1.0),
                             reuse=reuse, name=name, use_bias=not with_bn)
     return batch_normalization(dense, is_training, name + '_bn', reuse) if with_bn else dense
-
-
-# 利用不同类别概率差抽取点云的方法
-def instance_choice(sub_mask, sample_num):
-    batch_size = sub_mask.shape[0]
-    mask_num = sub_mask.shape[1]
-    indices = np.zeros((batch_size, sample_num, 2), dtype=np.int32)
-
-    for b_id in range(batch_size):
-        mask = sub_mask[b_id]
-        choice = []
-
-        for m_id in range(mask_num):
-            if mask[m_id] > 0:
-                choice.append([b_id, m_id])
-
-        choice_num = len(choice)
-        if choice_num != 0:
-            c_id = np.random.choice(range(choice_num), sample_num, replace=(choice_num < sample_num))
-            indices[b_id, ...] = np.array(choice)[c_id]
-        else:
-            sample_num_neg = 16
-            c_id_pick = np.argsort(mask.flatten())[-sample_num_neg:]
-            c_id = np.random.choice(c_id_pick, sample_num, replace=True)
-            indices[b_id, ...] = [[b_id, i] for i in c_id]
-
-    return indices

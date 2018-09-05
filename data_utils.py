@@ -165,37 +165,6 @@ def load_seg(filelist):
             np.concatenate(point_nums, axis=0),
             np.concatenate(labels_seg, axis=0))
 
-def load_seg_kitti(filelist):
-    points = []
-    images = []
-    point_nums = []
-    labels_seg = []
-    labels_hwl = []
-
-    labels_xyz = []
-    labels_ry = []
-    labels_ry_reg = []
-    folder = os.path.dirname(filelist)
-    for line in open(filelist):
-        filename = os.path.basename(line.rstrip())
-    data = h5py.File(os.path.join(folder, filename))
-    points.append(data['data'][...].astype(np.float32))
-    images.append(data['data_img'][...].astype(np.float32))
-    point_nums.append(data['data_num'][...].astype(np.int32))
-    labels_seg.append(data['label_seg'][...].astype(np.int32))
-    labels_hwl.append(data['label_hwl'][...].astype(np.float32))
-    labels_xyz.append(data['label_xyz'][...].astype(np.float32))
-    labels_ry.append(data['label_ry'][...].astype(np.int32))
-    labels_ry_reg.append(data['label_ry_reg'][...].astype(np.float32))
-    return (np.concatenate(points, axis=0),
-            np.concatenate(images, axis=0),
-            np.concatenate(point_nums, axis=0),
-            np.concatenate(labels_seg, axis=0),
-            np.concatenate(labels_hwl, axis=0),
-            np.concatenate(labels_xyz, axis=0),
-            np.concatenate(labels_ry, axis=0),
-            np.concatenate(labels_ry_reg, axis=0))
-
 def balance_classes(labels):
     _, inverse, counts = np.unique(labels, return_inverse=True, return_counts=True)
     counts_max = np.amax(counts)
