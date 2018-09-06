@@ -3,6 +3,8 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import random
+
 import h5py
 import plyfile
 import numpy as np
@@ -164,6 +166,46 @@ def load_seg(filelist):
     return (np.concatenate(points, axis=0),
             np.concatenate(point_nums, axis=0),
             np.concatenate(labels_seg, axis=0))
+
+
+def load_all_seg(filelist, v_t_rate=0.5):
+    """
+
+    :param filelist:
+    :param v_t_rate: val_num / train_num
+    :return:train data and val data
+    """
+    train_occupancy = 100 / (1 + v_t_rate)
+    points_train = []
+    point_nums_train = []
+    labels_seg_train = []
+    points_val = []
+    point_nums_val = []
+    labels_seg_val = []
+
+    folder = os.path.dirname(filelist)
+    for line in open(filelist):
+        filename = os.path.basename(line.rstrip())
+        data = h5py.File(os.path.join(folder, filename))
+
+        for i in range(len(data['data_num'])):
+
+            if random.randint(0, 100) <= train_occupancy:
+                points_train.append(data['data'][i][...].astype(np.float32))
+                point_nums_train.append(data['data_num'][i][...].astype(np.int32))
+                labels_seg_train.append(data['label_seg'][i][...].astype(np.int32))
+            else:
+                points_val.append(data['data'][i][...].astype(np.float32))
+                point_nums_val.append(data['data_num'][i][...].astype(np.int32))
+                labels_seg_val.append(data['label_seg'][i][...].astype(np.int32))
+
+    return (np.concatenate(points_train, axis=0),
+            np.concatenate(point_nums_train, axis=0),
+            np.concatenate(labels_seg_train, axis=0),
+            np.concatenate(points_val, axis=0),
+            np.concatenate(point_nums_val, axis=0),
+            np.concatenate(labels_seg_val, axis=0))
+
 
 def balance_classes(labels):
     _, inverse, counts = np.unique(labels, return_inverse=True, return_counts=True)

@@ -12,7 +12,7 @@ import random
 import shutil
 import argparse
 import importlib
-import data_utils
+from data_utils import data_utils
 import numpy as np
 import pointfly as pf
 import tensorflow as tf
@@ -22,7 +22,7 @@ from datetime import datetime
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--filelist', '-t', help='Path to training set ground truth (.txt)', required=True)
-    parser.add_argument('--filelist_val', '-v', help='Path to validation set ground truth (.txt)', required=True)
+    parser.add_argument('--filelist_val', '-v', help='Path to validation set ground truth (.txt)', required=False)
     parser.add_argument('--load_ckpt', '-l', help='Path to a check point file for load')
     parser.add_argument('--save_folder', '-s', help='Path to folder for saving check points and summary', required=True)
     parser.add_argument('--model', '-m', help='Model to use', required=True)
@@ -59,9 +59,15 @@ def main():
 
     # Prepare inputs
     print('{}-Preparing datasets...'.format(datetime.now()))
-    
-    data_train, data_num_train, label_train = data_utils.load_seg(args.filelist)
-    data_val, data_num_val, label_val = data_utils.load_seg(args.filelist_val)
+
+    if args.filelist_val is None:
+        # data_train, data_num_train, label_train, data_val, data_num_val, label_val\
+        #     = data_utils.load_all_seg(args.filelist, 0.5)
+        data_train, data_num_train, label_train = data_utils.load_seg(args.filelist)
+        data_val, data_num_val, label_val = data_utils.load_seg(args.filelist)
+    else:
+        data_train, data_num_train, label_train = data_utils.load_seg(args.filelist)
+        data_val, data_num_val, label_val = data_utils.load_seg(args.filelist_val)
 
     # shuffle
     data_train, data_num_train, label_train = \
