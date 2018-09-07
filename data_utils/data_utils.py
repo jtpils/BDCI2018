@@ -168,6 +168,20 @@ def load_seg(filelist):
             np.concatenate(labels_seg, axis=0))
 
 
+def load_data(filelist):
+    points = []
+    point_nums = []
+
+    folder = os.path.dirname(filelist)
+    for line in open(filelist):
+        filename = os.path.basename(line.rstrip())
+        data = h5py.File(os.path.join(folder, filename))
+        points.append(data['data'][...].astype(np.float32))
+        point_nums.append(data['data_num'][...].astype(np.int32))
+    return (np.concatenate(points, axis=0),
+            np.concatenate(point_nums, axis=0))
+
+
 def load_all_seg(filelist, v_t_rate=0.5):
     """
 

@@ -49,7 +49,7 @@ def main():
     num_epochs = setting.num_epochs
     batch_size = setting.batch_size
     sample_num = setting.sample_num
-    step_val = 1000
+    step_val = 10000
     num_parts = setting.num_parts
     label_weights_list = setting.label_weights
     scaling_range = setting.scaling_range
