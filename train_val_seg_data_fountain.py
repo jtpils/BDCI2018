@@ -49,7 +49,7 @@ def main():
     num_epochs = setting.num_epochs
     batch_size = setting.batch_size
     sample_num = setting.sample_num
-    step_val = 10000
+    step_val = 30000
     num_parts = setting.num_parts
     label_weights_list = setting.label_weights
     scaling_range = setting.scaling_range
@@ -61,11 +61,15 @@ def main():
     print('{}-Preparing datasets...'.format(datetime.now()))
 
     if args.filelist_val is None:
+        print("load train")
         # data_train, data_num_train, label_train, data_val, data_num_val, label_val\
         #     = data_utils.load_all_seg(args.filelist, 0.5)
         data_train, data_num_train, label_train = data_utils.load_seg(args.filelist)
-        data_val, data_num_val, label_val = data_utils.load_seg(args.filelist)
+        data_val = data_train
+        data_num_val = data_num_train
+        label_val = label_train
     else:
+        print("load train and val")
         data_train, data_num_train, label_train = data_utils.load_seg(args.filelist)
         data_val, data_num_val, label_val = data_utils.load_seg(args.filelist_val)
 

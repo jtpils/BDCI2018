@@ -1,40 +1,20 @@
 #!/usr/bin/env bash
 
-gpu=
-setting=
+export CUDA_VISIBLE_DEVICES=0,1,2
 
-usage() { echo "train/val pointcnn_seg with -g gpu_id -x setting options"; }
+# 接着训练49999
+# python3 ../train_val_seg_data_fountain.py \
+# -t ../dataset_data_fountain/training/h5_49999/data_fountain_files.txt \
+# -s ../model_data_fountain/h5_49999/seg \
+# -l ../model_data_fountain/h5_49999/seg/pointcnn_seg_data_fountain_data_fountain_x4_2048_xyrgbi_31881_2018-09-07-12-29-56/ckpts/iter-40000 \
+# -m pointcnn_seg_data_fountain \
+# -x data_fountain_x4_2048_xyrgbi
 
-gpu_flag=0
-setting_flag=0
-while getopts g:x:h opt; do
-  case $opt in
-  g)
-    gpu_flag=1;
-    gpu=$(($OPTARG))
-    ;;
-  x)
-    setting_flag=1;
-    setting=${OPTARG}
-    ;;
-  h)
-    usage; exit;;
-  esac
-done
+# 练
+python3 ../train_val_seg_data_fountain.py \
+-t ../dataset_data_fountain/trainval/train/h5/data_fountain_files.txt \
+-v ../dataset_data_fountain/trainval/val/h5/data_fountain_files.txt \
+-s ../model_data_fountain/h5/seg \
+-m pointcnn_seg_data_fountain \
+-x data_fountain_x4_2048_xyrgbi
 
-shift $((OPTIND-1))
-
-if [ $gpu_flag -eq 0 ]
-then
-  echo "-g option is not presented!"
-  usage; exit;
-fi
-
-if [ $setting_flag -eq 0 ]
-then
-  echo "-x option is not presented!"
-  usage; exit;
-fi
-
-echo "Train/Val with setting $setting on GPU $gpu!"
-CUDA_VISIBLE_DEVICES=$gpu python3 ../train_val_seg_kitti.py -t /home/leon/Disk/datasets/data_fountain/training/h5_3000/data_fountain_files.txt -s /home/leon/Disk/models/data_fountain/h5_3000/seg -m pointcnn_seg_data_fountain -x $setting
