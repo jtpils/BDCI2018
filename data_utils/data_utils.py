@@ -119,6 +119,12 @@ def grouped_shuffle(inputs):
     return outputs
 
 
+def index_shuffle(index_length):
+    shuffle_indices = np.arange(index_length.shape[0])
+    np.random.shuffle(shuffle_indices)
+    return index_length[shuffle_indices, ...]
+
+
 def load_cls(filelist):
     points = []
     labels = []

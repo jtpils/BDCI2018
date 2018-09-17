@@ -19,10 +19,35 @@ import tensorflow as tf
 from datetime import datetime
 
 
+def load_bin(dir):
+    print("load bin")
+    bin_path = os.path.join(dir, "data_fountain_point.bin")
+    points_ele_all = np.fromfile(bin_path, np.float32)
+
+    bin_path = os.path.join(dir, "data_fountain_intensity.bin")
+    intensities = np.fromfile(bin_path, np.float32)
+
+    bin_path = os.path.join(dir, "data_fountain_point_num.bin")
+    point_nums = np.fromfile(bin_path, np.uint16).astype(int)
+
+    bin_path = os.path.join(dir, "data_fountain_label.bin")
+    labels = np.fromfile(bin_path, np.uint8)
+
+    print("create index_length")
+    index_length = np.zeros((len(point_nums), 2), int)
+    index_sum = 0
+    for i in range(len(point_nums)):
+        index_length[i][0] = index_sum
+        index_length[i][1] = point_nums[i]
+        index_sum += point_nums[i]
+
+    return index_length, points_ele_all, intensities, labels
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--filelist', '-t', help='Path to training set ground truth (.txt)', required=True)
-    parser.add_argument('--filelist_val', '-v', help='Path to validation set ground truth (.txt)', required=False)
+    parser.add_argument('--dir_train', '-t', help='Path to dir of train set', required=True)
+    parser.add_argument('--dir_val', '-v', help='Path to dir of val set', required=False)
     parser.add_argument('--load_ckpt', '-l', help='Path to a check point file for load')
     parser.add_argument('--save_folder', '-s', help='Path to folder for saving check points and summary', required=True)
     parser.add_argument('--model', '-m', help='Model to use', required=True)
@@ -33,8 +58,6 @@ def main():
     root_folder = os.path.join(args.save_folder, '%s_%s_%d_%s' % (args.model, args.setting, os.getpid(), time_string))
     if not os.path.exists(root_folder):
         os.makedirs(root_folder)
-
-    sys.stdout = open(os.path.join(root_folder, 'log.txt'), 'w')
 
     print('PID:', os.getpid())
 
@@ -60,26 +83,16 @@ def main():
     # Prepare inputs
     print('{}-Preparing datasets...'.format(datetime.now()))
 
-    if args.filelist_val is None:
-        print("load train")
-        # data_train, data_num_train, label_train, data_val, data_num_val, label_val\
-        #     = data_utils.load_all_seg(args.filelist, 0.5)
-        data_train, data_num_train, label_train = data_utils.load_seg(args.filelist)
-        data_val = data_train
-        data_num_val = data_num_train
-        label_val = label_train
-    else:
-        print("load train and val")
-        data_train, data_num_train, label_train = data_utils.load_seg(args.filelist)
-        data_val, data_num_val, label_val = data_utils.load_seg(args.filelist_val)
+    index_length_train, points_ele_train, intensities_train, labels_train = load_bin(args.dir_train)
+    index_length_val, points_ele_val, intensities_val, labels_val = load_bin(args.dir_val)
 
     # shuffle
-    data_train, data_num_train, label_train = \
-        data_utils.grouped_shuffle([data_train, data_num_train, label_train])
-        
-    num_train = data_train.shape[0]
-    point_num = data_train.shape[1]
-    num_val = data_val.shape[0]
+    index_length_train = data_utils.index_shuffle(index_length_train)
+    index_length_val = data_utils.index_shuffle(index_length_val)
+
+    num_train = index_length_train.shape[0]
+    point_num = max(np.max(index_length_train[:, 1]), np.max(index_length_val[:, 1]))
+    num_val = index_length_val.shape[0]
 
     print('{}-{:d}/{:d} training/validation samples.'.format(datetime.now(), num_train, num_val))
     batch_num = (num_train * num_epochs + batch_size - 1) // batch_size
@@ -224,10 +237,20 @@ def main():
                     start_idx = batch_size * batch_val_idx
                     end_idx = min(start_idx + batch_size, num_val)
                     batch_size_val = end_idx - start_idx
-                    points_batch = data_val[start_idx:end_idx, ...]
-                    points_num_batch = data_num_val[start_idx:end_idx, ...]
-                    labels_batch = label_val[start_idx:end_idx, ...]
-                    weights_batch = np.array(label_weights_list)[label_val[start_idx:end_idx, ...]]
+                    index_length_val_batch = index_length_val[start_idx:end_idx]
+
+                    points_batch = np.zeros((batch_size_val, point_num, 3))
+                    points_num_batch = np.zeros(batch_size_val)
+                    labels_batch = np.zeros((batch_size_val, point_num))
+                    for i, index_length in enumerate(index_length_val_batch):
+                        points_batch[i, 0:index_length[1], :] = \
+                            points_ele_val[index_length[0]*3:index_length[0]*3+index_length[1]*3]\
+                                .reshape(index_length[1], 3)
+                        points_num_batch[i] = index_length[1]
+                        labels_batch[i, 0:index_length[1]] = labels_val[index_length[0]:index_length[0]+index_length[1]]
+                    labels_batch = labels_batch.astype(np.int32)
+                    points_num_batch = points_num_batch.astype(np.int32)
+                    weights_batch = np.array(label_weights_list)[labels_batch]
 
                     xforms_np, rotations_np = pf.get_xforms(batch_size_val, scaling_range=scaling_range_val)
 
@@ -242,23 +265,22 @@ def main():
                                      labels_weights: weights_batch,
                                      is_training: False}
 
-                    loss_val, t_1_acc_val, t_1_acc_val_instance, t_1_acc_val_others = sess.run(sess_op_list,feed_dict=sess_feed_dict)
-                    print('{}-[Val  ]-Iter: {:06d}  Loss: {:.4f} T-1 Acc: {:.4f}'.format(datetime.now(), batch_val_idx, loss_val, t_1_acc_val))
-
-                    sys.stdout.flush()
+                    loss_val, t_1_acc_val, t_1_acc_val_instance, t_1_acc_val_others = sess.run(sess_op_list,
+                                                                                               feed_dict=sess_feed_dict)
+                    print('{}-[Val  ]-Iter: {:06d}  Loss: {:.4f} T-1 Acc: {:.4f}'.format(datetime.now(), batch_val_idx,
+                                                                                         loss_val, t_1_acc_val))
 
                     losses_val.append(loss_val * batch_size_val)
                     t_1_accs.append(t_1_acc_val * batch_size_val)
                     t_1_accs_instance.append(t_1_acc_val_instance * batch_size_val)
                     t_1_accs_others.append(t_1_acc_val_others * batch_size_val)
 
-
                 loss_avg = sum(losses_val)/num_val
                 t_1_acc_avg = sum(t_1_accs) / num_val
-                t_1_acc_instance_avg =  sum(t_1_accs_instance) / num_val
-                t_1_acc_others_avg =  sum(t_1_accs_others) / num_val
+                t_1_acc_instance_avg = sum(t_1_accs_instance) / num_val
+                t_1_acc_others_avg = sum(t_1_accs_others) / num_val
 
-                summaries_feed_dict = { loss_val_avg: loss_avg,
+                summaries_feed_dict = {loss_val_avg: loss_avg,
                                         t_1_acc_val_avg: t_1_acc_avg,
                                         t_1_acc_val_instance_avg: t_1_acc_instance_avg,
                                         t_1_acc_val_others_avg: t_1_acc_others_avg}
@@ -269,7 +291,6 @@ def main():
                 print('{}-[Val  ]-Average:      Loss: {:.4f} T-1 Acc: {:.4f}'
                     .format(datetime.now(), loss_avg, t_1_acc_avg))
 
-                sys.stdout.flush()
                 ######################################################################
 
             ######################################################################
@@ -277,15 +298,22 @@ def main():
             start_idx = (batch_size * batch_idx) % num_train
             end_idx = min(start_idx + batch_size, num_train)
             batch_size_train = end_idx - start_idx
-            points_batch = data_train[start_idx:end_idx, ...]
 
-            points_num_batch = data_num_train[start_idx:end_idx, ...]
-            labels_batch = label_train[start_idx:end_idx, ...]
+            index_length_train_batch = index_length_train[start_idx:end_idx]
+            points_batch = np.zeros((batch_size_train, point_num, 3))
+            points_num_batch = np.zeros(batch_size_train)
+            labels_batch = np.zeros((batch_size_train, point_num))
+            for i, index_length in enumerate(index_length_train_batch):
+                points_batch[i, 0:index_length[1], :] = \
+                    points_ele_train[index_length[0]*3:index_length[0]*3+index_length[1]*3].reshape(index_length[1], 3)
+                points_num_batch[i] = index_length[1]
+                labels_batch[i, 0:index_length[1]] = labels_train[index_length[0]:index_length[0] + index_length[1]]
+            labels_batch = labels_batch.astype(np.int32)
+            points_num_batch = points_num_batch.astype(np.int32)
             weights_batch = np.array(label_weights_list)[labels_batch]
 
             if start_idx + batch_size_train == num_train:
-                data_train, data_num_train, label_train = \
-                    data_utils.grouped_shuffle([data_train, data_num_train, label_train])
+                index_length_train = data_utils.index_shuffle(index_length_train)
 
             offset = int(random.gauss(0, sample_num // 8))
             offset = max(offset, -sample_num // 4)
@@ -309,7 +337,6 @@ def main():
               .format(datetime.now(), batch_idx, loss, t_1_acc))
 
             summary_writer.add_summary(summaries, batch_idx)
-            sys.stdout.flush()
 
             ######################################################################
         print('{}-Done!'.format(datetime.now()))
