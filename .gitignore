@@ -1,6 +1,3 @@
 venv
 .idea
 __pycache__
-cmd.txt
-model_data_fountain
-dataset_data_fountain
