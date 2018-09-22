@@ -44,11 +44,11 @@ def prepare(args):
             if x >= 0 and y > 0:
                 points_q1.extend([x, y, z])
             elif x < 0 and y >= 0:
-                points_q2.extend([x, y, z])
+                points_q2.extend([-x, y, z])
             elif x <= 0 and y < 0:
-                points_q3.extend([x, y, z])
+                points_q3.extend([-x, -y, z])
             elif x > 0 and y <= 0:
-                points_q4.extend([x, y, z])
+                points_q4.extend([x, -y, z])
 
         if len(points_q1) > 0:
             count_point_ele += len(points_q1)
@@ -80,12 +80,16 @@ def prepare(args):
 
     f_log.write("count_point_ele: %d\n" % count_point_ele)
     f_log.write("count_quadrant: %d\n" % count_quadrant)
+    f_log.write("min_point_value: %f %f %f\n" % count_quadrant)
 
     return count_point_ele, count_quadrant
 
 
 def main(args):
     all_point_ele_num, all_quadrant_num = prepare(args)
+    # all_point_ele_num = 6877090848
+    # all_quadrant_num = 158456
+
     dir_input = args.dir_input
     dir_output = args.dir_output
     max_sample_num = args.max_samples
@@ -145,15 +149,15 @@ def main(args):
                 intensities_q1.append(intensity_this[i])
                 labels_q1.append(label_seg_this[i])
             elif x < 0 and y >= 0:
-                points_q2.extend([x, y, z])
+                points_q2.extend([-x, y, z])
                 intensities_q2.append(intensity_this[i])
                 labels_q2.append(label_seg_this[i])
             elif x <= 0 and y < 0:
-                points_q3.extend([x, y, z])
+                points_q3.extend([-x, -y, z])
                 intensities_q3.append(intensity_this[i])
                 labels_q3.append(label_seg_this[i])
             elif x > 0 and y <= 0:
-                points_q4.extend([x, y, z])
+                points_q4.extend([x, -y, z])
                 intensities_q4.append(intensity_this[i])
                 labels_q4.append(label_seg_this[i])
 
@@ -264,7 +268,6 @@ if __name__ == '__main__':
     parser.add_argument('--dir_input', '-i', help='Path to data folder', required=True)
     parser.add_argument('--dir_output', '-o', help='Path to h5 folder', required=True)
     parser.add_argument('--max_samples', '-m', default=-1, type=int, help='The max num of sample', required=False)
-    parser.add_argument('--min_label_seg', '-l', default=-1, type=int, help='The min num of label_seg', required=True)
     args = parser.parse_args()
     print(args)
 

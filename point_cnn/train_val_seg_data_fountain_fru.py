@@ -239,17 +239,16 @@ def main():
                     batch_size_val = end_idx - start_idx
                     index_length_val_batch = index_length_val[start_idx:end_idx]
 
-                    points_batch = np.zeros((batch_size_val, point_num, 3))
-                    points_num_batch = np.zeros(batch_size_val)
-                    labels_batch = np.zeros((batch_size_val, point_num))
+                    points_batch = np.zeros((batch_size_val, point_num, 3), np.float32)
+                    points_num_batch = np.zeros(batch_size_val, np.int32)
+                    labels_batch = np.zeros((batch_size_val, point_num), np.int32)
                     for i, index_length in enumerate(index_length_val_batch):
                         points_batch[i, 0:index_length[1], :] = \
                             points_ele_val[index_length[0]*3:index_length[0]*3+index_length[1]*3]\
                                 .reshape(index_length[1], 3)
-                        points_num_batch[i] = index_length[1]
-                        labels_batch[i, 0:index_length[1]] = labels_val[index_length[0]:index_length[0]+index_length[1]]
-                    labels_batch = labels_batch.astype(np.int32)
-                    points_num_batch = points_num_batch.astype(np.int32)
+                        points_num_batch[i] = index_length[1].astype(np.int32)
+                        labels_batch[i, 0:index_length[1]] = \
+                            labels_val[index_length[0]:index_length[0]+index_length[1]].astype(np.int32)
                     weights_batch = np.array(label_weights_list)[labels_batch]
 
                     xforms_np, rotations_np = pf.get_xforms(batch_size_val, scaling_range=scaling_range_val)
@@ -300,16 +299,15 @@ def main():
             batch_size_train = end_idx - start_idx
 
             index_length_train_batch = index_length_train[start_idx:end_idx]
-            points_batch = np.zeros((batch_size_train, point_num, 3))
-            points_num_batch = np.zeros(batch_size_train)
-            labels_batch = np.zeros((batch_size_train, point_num))
+            points_batch = np.zeros((batch_size_train, point_num, 3), np.float32)
+            points_num_batch = np.zeros(batch_size_train, np.int32)
+            labels_batch = np.zeros((batch_size_train, point_num), np.int32)
             for i, index_length in enumerate(index_length_train_batch):
                 points_batch[i, 0:index_length[1], :] = \
                     points_ele_train[index_length[0]*3:index_length[0]*3+index_length[1]*3].reshape(index_length[1], 3)
-                points_num_batch[i] = index_length[1]
-                labels_batch[i, 0:index_length[1]] = labels_train[index_length[0]:index_length[0] + index_length[1]]
-            labels_batch = labels_batch.astype(np.int32)
-            points_num_batch = points_num_batch.astype(np.int32)
+                points_num_batch[i] = index_length[1].astype(np.int32)
+                labels_batch[i, 0:index_length[1]] = \
+                    labels_train[index_length[0]:index_length[0] + index_length[1]].astype(np.int32)
             weights_batch = np.array(label_weights_list)[labels_batch]
 
             if start_idx + batch_size_train == num_train:

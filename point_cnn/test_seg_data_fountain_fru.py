@@ -10,7 +10,7 @@ import sys
 import math
 import argparse
 import importlib
-from data_utils import data_utils
+from point_cnn.data_utils import data_utils
 import numpy as np
 import tensorflow as tf
 from datetime import datetime
@@ -18,11 +18,10 @@ from datetime import datetime
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--filelist', '-f', help='Path to input .h5 filelist (.txt)', required=True)
-    parser.add_argument('--data_folder', '-d', help='Path to *.pts directory', required=True)
+    parser.add_argument('--input_dir', '-i', help='Path to point(*.csv) directory', required=True)
+    parser.add_argument('--output_dir', '-o', help='Path to seg results directory', required=True)
     parser.add_argument('--load_ckpt', '-l', help='Path to a check point file for load', required=True)
     parser.add_argument('--repeat_num', '-r', help='Repeat number', type=int, default=1)
-    parser.add_argument('--sample_num', help='Point sample num', type=int, default=1024)
     parser.add_argument('--model', '-m', help='Model to use', required=True)
     parser.add_argument('--setting', '-x', help='Setting to use', required=True)
 
@@ -36,29 +35,23 @@ def main():
     sample_num = setting.sample_num
     num_parts = setting.num_parts
 
-    output_folder = os.path.abspath(os.path.join(args.data_folder, ".")) + '/pred_' + str(args.repeat_num)
+    dir_output = args.output_dir
+    dir_input = args.input_dir
 
-    output_folder_seg = output_folder + '/seg/'
-    
     # check the path
-    if not os.path.exists(output_folder_seg):
-        print(output_folder_seg, "Not Exists! Create", output_folder_seg)
-        os.makedirs(output_folder_seg)
+    if not os.path.exists(dir_output):
+        print(dir_output, "Not Exists! Create", dir_output)
+        os.makedirs(dir_output)
 
     input_filelist = []
     output_seg_filelist = []
 
-    for filename in sorted(os.listdir(args.data_folder)):
-        input_filelist.append(os.path.join(args.data_folder, filename))
-        output_seg_filelist.append(os.path.join(output_folder_seg, filename[0:-3] + 'csv'))
-
-    # Prepare inputs
-    print('{}-Preparing datasets...'.format(datetime.now()))
-
-    data, data_num = data_utils.load_data(args.filelist)
+    for filename in sorted(os.listdir(dir_input)):
+        input_filelist.append(os.path.join(dir_input, filename))
+        output_seg_filelist.append(os.path.join(dir_output, filename[0:-3] + 'csv'))
     
-    batch_num = data.shape[0]
-    max_point_num = data.shape[1]
+    batch_num = len(input_filelist)
+    max_point_num = 60000
     batch_size = args.repeat_num * math.ceil(max_point_num / sample_num)
 
     print('{}-{:d} testing batches.'.format(datetime.now(), batch_num))
@@ -106,8 +99,6 @@ def main():
         for batch_idx in range(batch_num):
 
             points_batch = data[[batch_idx] * batch_size, ...]
-            print(points_batch.shape)
-            print([batch_idx] * batch_size)
             point_num = data_num[batch_idx]
 
             tile_num = math.ceil((sample_num * batch_size) / point_num)
