@@ -16,6 +16,8 @@ def prepare(args):
 
     count_point_ele = 0
     count_quadrant = 0
+    min_point_value = [0.0, 0.0, 0.0]
+    max_point_value = [0.0, 0.0, 0.0]
 
     if not os.path.exists(dir_output):
         os.makedirs(dir_output)
@@ -41,6 +43,22 @@ def prepare(args):
             x = float(ele_xyz[0])
             y = float(ele_xyz[1])
             z = float(ele_xyz[2])
+
+            if k == 0 and i == 0:
+                min_point_value = [x, y, z]
+            if x < min_point_value[0]:
+                min_point_value[0] = x
+            if y < min_point_value[1]:
+                min_point_value[1] = y
+            if z < min_point_value[2]:
+                min_point_value[2] = z
+            if x > max_point_value[0]:
+                max_point_value[0] = x
+            if y > max_point_value[1]:
+                max_point_value[1] = y
+            if z > max_point_value[2]:
+                max_point_value[2] = z
+
             if x >= 0 and y > 0:
                 points_q1.extend([x, y, z])
             elif x < 0 and y >= 0:
@@ -80,13 +98,14 @@ def prepare(args):
 
     f_log.write("count_point_ele: %d\n" % count_point_ele)
     f_log.write("count_quadrant: %d\n" % count_quadrant)
-    f_log.write("min_point_value: %f %f %f\n" % count_quadrant)
+    f_log.write("min_point_value: %f %f %f\n" % (min_point_value[0], min_point_value[1], min_point_value[2]))
+    f_log.write("max_point_value: %f %f %f\n" % (max_point_value[0], max_point_value[1], max_point_value[2]))
 
-    return count_point_ele, count_quadrant
+    return count_point_ele, count_quadrant, min_point_value, max_point_value
 
 
 def main(args):
-    all_point_ele_num, all_quadrant_num = prepare(args)
+    all_point_ele_num, all_quadrant_num, min_point_value, max_point_value = prepare(args)
     # all_point_ele_num = 6877090848
     # all_quadrant_num = 158456
 
