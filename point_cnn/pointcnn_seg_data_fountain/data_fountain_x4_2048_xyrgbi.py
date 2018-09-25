@@ -7,7 +7,7 @@ num_parts = 8
 
 sample_num = 2048
 
-batch_size = 6
+batch_size = 12
 
 num_epochs = 1024
 
@@ -23,6 +23,7 @@ learning_rate_base = 0.005
 decay_steps = 20000
 decay_rate = 0.8
 learning_rate_min = 1e-6
+step_val = 20000
 
 weight_decay = 0.0
 
@@ -59,9 +60,11 @@ optimizer = 'adam'
 epsilon = 1e-3
 
 # imput data
-data_dim = 3
+point_dim = 3
+extra_dim = 1
 use_extra_features = True
-data_format = {"pts_xyz": 3}
+#data_format = {"pts_xyz": 3}
+data_format = {"pts_xyz":3, "extra_features":1}
 
 with_X_transformation = True
 

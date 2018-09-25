@@ -159,6 +159,7 @@ def load_seg_list(filelist):
 
 def load_seg(filelist):
     points = []
+    intensity_features = []
     point_nums = []
     labels_seg = []
 
@@ -167,15 +168,18 @@ def load_seg(filelist):
         filename = os.path.basename(line.rstrip())
         data = h5py.File(os.path.join(folder, filename))
         points.append(data['data'][...].astype(np.float32))
+        intensity_features.append(data['intensity'][...].astype(np.float32))
         point_nums.append(data['data_num'][...].astype(np.int32))
         labels_seg.append(data['label_seg'][...].astype(np.int32))
     return (np.concatenate(points, axis=0),
+            np.concatenate(intensity_features, axis=0),
             np.concatenate(point_nums, axis=0),
             np.concatenate(labels_seg, axis=0))
 
 
 def load_data(filelist):
     points = []
+    intensity_features = []
     point_nums = []
 
     folder = os.path.dirname(filelist)
@@ -183,8 +187,10 @@ def load_data(filelist):
         filename = os.path.basename(line.rstrip())
         data = h5py.File(os.path.join(folder, filename))
         points.append(data['data'][...].astype(np.float32))
+        intensity_features.append(data['intensity'][...].astype(np.float32))
         point_nums.append(data['data_num'][...].astype(np.int32))
     return (np.concatenate(points, axis=0),
+            np.concatenate(intensity_features, axis=0),
             np.concatenate(point_nums, axis=0))
 
 
