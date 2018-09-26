@@ -37,18 +37,19 @@ order = 'rxyz'
 scaling_range = [0, 0, 0, 'g']
 scaling_range_val = [0, 0, 0, 'u']
 
-x = 4
+x = 2
 
 # K, D, P, C
 xconv_params = [(8, 1, -1, 32 * x),
                 (12, 2, 768, 64 * x),
                 (16, 2, 384, 128 * x),
-                (16, 6, 128, 156 * x)]
+                (16, 2, 128, 156 * x)]
 
 # K, D, pts_layer_idx, qrs_layer_idx
-xdconv_params = [(16, 6, 3, 2),
-                 (12, 4, 2, 1),
-                 (8, 4, 1, 0)]
+xdconv_params = [(16, 2, 3, 3),
+                 (16, 2, 3, 2),
+                 (12, 2, 2, 1),
+                 (8, 2, 1, 0)]
 
 # C, dropout_rate
 fc_params = [(32 * x, 0.0), (32 * x, 0.5)]

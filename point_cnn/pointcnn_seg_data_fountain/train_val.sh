@@ -19,9 +19,17 @@ export CUDA_VISIBLE_DEVICES=0,1,2
 #-x data_fountain_x4_2048_xyrgbi
 
 # 训练原4分块视锥bin数据
-python3 ../train_val_seg_data_fountain_fru.py \
+#python3 ../train_val_seg_data_fountain_fru.py \
+#-t ../dataset_data_fountain/trainval/train/h5_fru_abs \
+#-v ../dataset_data_fountain/trainval/val/h5_fru_abs \
+#-s ../model_data_fountain/h5/seg \
+#-m pointcnn_seg_data_fountain \
+#-x data_fountain_x4_2048_xyrgbi
+
+# 训练原4分块视锥bin数据+intensity
+python3 ../train_val_seg_data_fountain_fru+intensity.py \
 -t ../dataset_data_fountain/trainval/train/h5_fru_abs \
 -v ../dataset_data_fountain/trainval/val/h5_fru_abs \
 -s ../model_data_fountain/h5/seg \
 -m pointcnn_seg_data_fountain \
--x data_fountain_x4_2048_xyrgbi
+-x data_fountain_x4_2048_xyrgbi_fru+intensity
