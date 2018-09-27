@@ -239,7 +239,7 @@ offset_y = 0.2
 ############################################ load source ############################################
 #check the output path
 if not os.path.exists(out_root):
-    print out_root,"Not Exists! Create",out_root
+    print(out_root, "Not Exists! Create", out_root)
     os.makedirs(out_root)
 
 #create and clear log file
@@ -272,7 +272,7 @@ acc_num_all = 0
 
 for scene_id in scene_list:
 
-    print "process:",scene_id
+    print("process:", scene_id)
     log_file.writelines("process scene:" + scene_id + "\n")
 
     pts_num_scene = 0

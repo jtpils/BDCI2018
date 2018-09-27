@@ -143,13 +143,14 @@ def main():
 
     labels_sampled = tf.gather_nd(labels_seg, indices=indices, name='labels_sampled')
     labels_weights_sampled = tf.gather_nd(labels_weights, indices=indices, name='labels_weight_sampled')
-    
+
     # Build net
     net = model.Net(points_augmented, features_sampled, None, None, num_parts, is_training, setting)
     logits, probs = net.logits, net.probs
 
     # Define Loss Func
-    loss_op = tf.losses.sparse_softmax_cross_entropy(labels=labels_sampled, logits=logits, weights=labels_weights_sampled)
+    loss_op = tf.losses.sparse_softmax_cross_entropy(labels=labels_sampled, logits=logits,
+                                                     weights=labels_weights_sampled)
     _ = tf.summary.scalar('loss/train_seg', tensor=loss_op, collections=['train'])
 
     # for vis t1 acc
@@ -175,7 +176,8 @@ def main():
     reg_loss = setting.weight_decay * tf.losses.get_regularization_loss()
 
     # lr decay
-    lr_exp_op = tf.train.exponential_decay(setting.learning_rate_base, global_step, setting.decay_steps,setting.decay_rate, staircase=True)
+    lr_exp_op = tf.train.exponential_decay(setting.learning_rate_base, global_step, setting.decay_steps,
+                                           setting.decay_rate, staircase=True)
     lr_clip_op = tf.maximum(lr_exp_op, setting.learning_rate_min)
     _ = tf.summary.scalar('learning_rate', tensor=lr_clip_op, collections=['train'])
 
@@ -254,19 +256,18 @@ def main():
                     labels_batch = np.zeros((batch_size_val, point_num), np.int32)
 
                     for i, index_length in enumerate(index_length_val_batch):
-
                         points_batch[i, 0:index_length[1], :] = \
-                            points_ele_val[index_length[0]*3:
-                                           index_length[0]*3+index_length[1]*3].reshape(index_length[1], 3)
+                            points_ele_val[index_length[0] * 3:
+                                           index_length[0] * 3 + index_length[1] * 3].reshape(index_length[1], 3)
 
                         intensity_batch[i, 0:index_length[1], :] = \
                             intensities_val[index_length[0]:
-                                            index_length[0]+index_length[1]].reshape(index_length[1], 1)
+                                            index_length[0] + index_length[1]].reshape(index_length[1], 1)
 
                         points_num_batch[i] = index_length[1].astype(np.int32)
 
                         labels_batch[i, 0:index_length[1]] = \
-                            labels_val[index_length[0]:index_length[0]+index_length[1]].astype(np.int32)
+                            labels_val[index_length[0]:index_length[0] + index_length[1]].astype(np.int32)
 
                     weights_batch = np.array(label_weights_list)[labels_batch]
 
@@ -275,14 +276,14 @@ def main():
                     sess_op_list = [loss_op, t_1_acc_op, t_1_acc_instance_op, t_1_acc_others_op]
 
                     sess_feed_dict = {pts: points_batch,
-                                     fts: intensity_batch,
-                                     indices: pf.get_indices(batch_size_val, sample_num, points_num_batch),
-                                     xforms: xforms_np,
-                                     rotations: rotations_np,
-                                     jitter_range: np.array([jitter_val]),
-                                     labels_seg: labels_batch,
-                                     labels_weights: weights_batch,
-                                     is_training: False}
+                                      fts: intensity_batch,
+                                      indices: pf.get_indices(batch_size_val, sample_num, points_num_batch),
+                                      xforms: xforms_np,
+                                      rotations: rotations_np,
+                                      jitter_range: np.array([jitter_val]),
+                                      labels_seg: labels_batch,
+                                      labels_weights: weights_batch,
+                                      is_training: False}
 
                     loss_val, t_1_acc_val, t_1_acc_val_instance, t_1_acc_val_others = sess.run(sess_op_list,
                                                                                                feed_dict=sess_feed_dict)
@@ -294,21 +295,21 @@ def main():
                     t_1_accs_instance.append(t_1_acc_val_instance * batch_size_val)
                     t_1_accs_others.append(t_1_acc_val_others * batch_size_val)
 
-                loss_avg = sum(losses_val)/num_val
+                loss_avg = sum(losses_val) / num_val
                 t_1_acc_avg = sum(t_1_accs) / num_val
                 t_1_acc_instance_avg = sum(t_1_accs_instance) / num_val
                 t_1_acc_others_avg = sum(t_1_accs_others) / num_val
 
                 summaries_feed_dict = {loss_val_avg: loss_avg,
-                                        t_1_acc_val_avg: t_1_acc_avg,
-                                        t_1_acc_val_instance_avg: t_1_acc_instance_avg,
-                                        t_1_acc_val_others_avg: t_1_acc_others_avg}
+                                       t_1_acc_val_avg: t_1_acc_avg,
+                                       t_1_acc_val_instance_avg: t_1_acc_instance_avg,
+                                       t_1_acc_val_others_avg: t_1_acc_others_avg}
 
-                summaries_val = sess.run(summaries_val_op,feed_dict=summaries_feed_dict)
+                summaries_val = sess.run(summaries_val_op, feed_dict=summaries_feed_dict)
                 summary_writer.add_summary(summaries_val, batch_idx)
 
                 print('{}-[Val  ]-Average:      Loss: {:.4f} T-1 Acc: {:.4f}'
-                    .format(datetime.now(), loss_avg, t_1_acc_avg))
+                      .format(datetime.now(), loss_avg, t_1_acc_avg))
 
                 ######################################################################
 
@@ -325,10 +326,9 @@ def main():
             labels_batch = np.zeros((batch_size_train, point_num), np.int32)
 
             for i, index_length in enumerate(index_length_train_batch):
-
                 points_batch[i, 0:index_length[1], :] = \
-                    points_ele_train[index_length[0]*3:
-                                     index_length[0]*3+index_length[1]*3].reshape(index_length[1], 3)
+                    points_ele_train[index_length[0] * 3:
+                                     index_length[0] * 3 + index_length[1] * 3].reshape(index_length[1], 3)
 
                 intensity_batch[i, 0:index_length[1], :] = \
                     intensities_train[index_length[0]:
@@ -353,19 +353,19 @@ def main():
             sess_op_list = [train_op, loss_op, t_1_acc_op, t_1_acc_instance_op, t_1_acc_others_op, summaries_op]
 
             sess_feed_dict = {pts: points_batch,
-                             fts: intensity_batch,
-                             indices: pf.get_indices(batch_size_train, sample_num_train, points_num_batch),
-                             xforms: xforms_np,
-                             rotations: rotations_np,
-                             jitter_range: np.array([jitter]),
-                             labels_seg: labels_batch,
-                             labels_weights: weights_batch,
-                             is_training: True}
+                              fts: intensity_batch,
+                              indices: pf.get_indices(batch_size_train, sample_num_train, points_num_batch),
+                              xforms: xforms_np,
+                              rotations: rotations_np,
+                              jitter_range: np.array([jitter]),
+                              labels_seg: labels_batch,
+                              labels_weights: weights_batch,
+                              is_training: True}
 
             _, loss, t_1_acc, t_1_acc_instance, t_1_acc_others, summaries = sess.run(sess_op_list,
                                                                                      feed_dict=sess_feed_dict)
             print('{}-[Train]-Iter: {:06d}  Loss_seg: {:.4f} T-1 Acc: {:.4f}'
-              .format(datetime.now(), batch_idx, loss, t_1_acc))
+                  .format(datetime.now(), batch_idx, loss, t_1_acc))
 
             summary_writer.add_summary(summaries, batch_idx)
 
