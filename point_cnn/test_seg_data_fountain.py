@@ -10,7 +10,7 @@ import sys
 import math
 import argparse
 import importlib
-import data_utils
+from point_cnn.data_utils import data_utils
 import numpy as np
 import tensorflow as tf
 from datetime import datetime
@@ -36,7 +36,7 @@ def main():
     sample_num = setting.sample_num
     num_parts = setting.num_parts
 
-    output_folder = os.path.abspath(os.path.join(args.data_folder, "..")) + '/pred_' + str(args.repeat_num)
+    output_folder = os.path.abspath(os.path.join(args.data_folder, ".")) + '/pred_' + str(args.repeat_num)
 
     output_folder_seg = output_folder + '/seg/'
     
@@ -50,12 +50,12 @@ def main():
 
     for filename in sorted(os.listdir(args.data_folder)):
         input_filelist.append(os.path.join(args.data_folder, filename))
-        output_seg_filelist.append(os.path.join(output_folder_seg, filename[0:-3] + 'seg'))
+        output_seg_filelist.append(os.path.join(output_folder_seg, filename[0:-3] + 'csv'))
 
     # Prepare inputs
     print('{}-Preparing datasets...'.format(datetime.now()))
 
-    data, data_num, _label_seg = data_utils.load_seg(args.filelist)
+    data, intensity_features, data_num = data_utils.load_data(args.filelist)
     
     batch_num = data.shape[0]
     max_point_num = data.shape[1]
@@ -89,7 +89,6 @@ def main():
 
     net = model.Net(points_sampled, features_sampled, None, None, num_parts, is_training, setting)
 
-
     probs_op = net.probs
 
     saver = tf.train.Saver()
@@ -107,6 +106,8 @@ def main():
         for batch_idx in range(batch_num):
 
             points_batch = data[[batch_idx] * batch_size, ...]
+            print(points_batch.shape)
+            print([batch_idx] * batch_size)
             point_num = data_num[batch_idx]
 
             tile_num = math.ceil((sample_num * batch_size) / point_num)
@@ -120,7 +121,6 @@ def main():
             sess_feed_dict = {pts_fts: points_batch,
                               indices: indices_batch,
                               is_training: False}
-
 
             # sess run
             config = tf.ConfigProto()

@@ -16,8 +16,6 @@ def prepare(args):
 
     count_point_ele = 0
     count_quadrant = 0
-    min_point_value = [0.0, 0.0, 0.0]
-    max_point_value = [0.0, 0.0, 0.0]
 
     if not os.path.exists(dir_output):
         os.makedirs(dir_output)
@@ -43,21 +41,6 @@ def prepare(args):
             x = float(ele_xyz[0])
             y = float(ele_xyz[1])
             z = float(ele_xyz[2])
-
-            if k == 0 and i == 0:
-                min_point_value = [x, y, z]
-            if x < min_point_value[0]:
-                min_point_value[0] = x
-            if y < min_point_value[1]:
-                min_point_value[1] = y
-            if z < min_point_value[2]:
-                min_point_value[2] = z
-            if x > max_point_value[0]:
-                max_point_value[0] = x
-            if y > max_point_value[1]:
-                max_point_value[1] = y
-            if z > max_point_value[2]:
-                max_point_value[2] = z
 
             if x >= 0 and y > 0:
                 points_q1.extend([x, y, z])
@@ -98,20 +81,19 @@ def prepare(args):
 
     f_log.write("count_point_ele: %d\n" % count_point_ele)
     f_log.write("count_quadrant: %d\n" % count_quadrant)
-    f_log.write("min_point_value: %f %f %f\n" % (min_point_value[0], min_point_value[1], min_point_value[2]))
-    f_log.write("max_point_value: %f %f %f\n" % (max_point_value[0], max_point_value[1], max_point_value[2]))
 
-    return count_point_ele, count_quadrant, min_point_value, max_point_value
+    return count_point_ele, count_quadrant
 
 
 def main(args):
-    all_point_ele_num, all_quadrant_num, min_point_value, max_point_value = prepare(args)
+    all_point_ele_num, all_quadrant_num = prepare(args)
     # all_point_ele_num = 6877090848
     # all_quadrant_num = 158456
 
     dir_input = args.dir_input
     dir_output = args.dir_output
     max_sample_num = args.max_samples
+    for_test = args.for_test
     data_ext = '.csv'
 
     dir_pts = os.path.join(dir_input, 'pts')
@@ -123,6 +105,7 @@ def main(args):
     intensities = np.zeros(all_point_ele_num // 3, np.float32)
     point_nums = np.zeros(all_quadrant_num, np.uint16)
     labels = np.zeros(all_point_ele_num // 3, np.uint8)
+    indices = np.zeros(all_point_ele_num // 3, np.uint16)
 
     if not os.path.exists(dir_output):
         os.makedirs(dir_output)
@@ -151,13 +134,18 @@ def main(args):
         labels_q2 = []
         labels_q3 = []
         labels_q4 = []
+        indices_q1 = []
+        indices_q2 = []
+        indices_q3 = []
+        indices_q4 = []
 
         data_file_path = os.path.join(dir_pts, filename + data_ext)
         f_data = open(data_file_path, 'r')
         intensity_path = os.path.join(dir_intensity, filename + data_ext)
         intensity_this = np.loadtxt(intensity_path).astype(np.float32)
-        label_file_path = os.path.join(dir_label, filename + data_ext)
-        label_seg_this = np.loadtxt(label_file_path).astype(np.int32)
+        if not for_test:
+            label_file_path = os.path.join(dir_label, filename + data_ext)
+            label_seg_this = np.loadtxt(label_file_path).astype(np.int32)
         for i, xyz in enumerate(f_data.readlines()):
             ele_xyz = xyz.split(',')
             x = float(ele_xyz[0])
@@ -166,25 +154,35 @@ def main(args):
             if x >= 0 and y > 0:
                 points_q1.extend([x, y, z])
                 intensities_q1.append(intensity_this[i])
-                labels_q1.append(label_seg_this[i])
+                if not for_test:
+                    labels_q1.append(label_seg_this[i])
+                indices_q1.append(i)
             elif x < 0 and y >= 0:
                 points_q2.extend([-x, y, z])
                 intensities_q2.append(intensity_this[i])
-                labels_q2.append(label_seg_this[i])
+                if not for_test:
+                    labels_q2.append(label_seg_this[i])
+                indices_q2.append(i)
             elif x <= 0 and y < 0:
                 points_q3.extend([-x, -y, z])
                 intensities_q3.append(intensity_this[i])
-                labels_q3.append(label_seg_this[i])
+                if not for_test:
+                    labels_q3.append(label_seg_this[i])
+                indices_q3.append(i)
             elif x > 0 and y <= 0:
                 points_q4.extend([x, -y, z])
                 intensities_q4.append(intensity_this[i])
-                labels_q4.append(label_seg_this[i])
+                if not for_test:
+                    labels_q4.append(label_seg_this[i])
+                indices_q4.append(i)
 
         if len(points_q1) > 0:
             point_num_this = len(points_q1) // 3
             points_ele_all[id_point_ele:id_point_ele + len(points_q1)] = np.array(points_q1).astype(np.float32)
             intensities[id_point:id_point + point_num_this] = np.array(intensities_q1).astype(np.float32)
-            labels[id_point:id_point + point_num_this] = np.array(labels_q1).astype(np.uint8)
+            if not for_test:
+                labels[id_point:id_point + point_num_this] = np.array(labels_q1).astype(np.uint8)
+            indices[id_point:id_point + point_num_this] = np.array(indices_q1).astype(np.uint16)
             point_nums[id_quadrant] = np.array(point_num_this).astype(np.uint16)
 
             id_point_ele += len(points_q1)
@@ -198,8 +196,10 @@ def main(args):
             point_num_this = len(points_q2) // 3
             points_ele_all[id_point_ele:id_point_ele + len(points_q2)] = np.array(points_q2).astype(np.float32)
             intensities[id_point:id_point + point_num_this] = np.array(intensities_q2).astype(np.float32)
-            labels[id_point:id_point + point_num_this] = np.array(labels_q2).astype(np.uint8)
-            point_nums[id_quadrant] = point_num_this
+            if not for_test:
+                labels[id_point:id_point + point_num_this] = np.array(labels_q2).astype(np.uint8)
+            indices[id_point:id_point + point_num_this] = np.array(indices_q2).astype(np.uint16)
+            point_nums[id_quadrant] = np.array(point_num_this).astype(np.uint16)
 
             id_point_ele += len(points_q2)
             id_point += point_num_this
@@ -212,8 +212,10 @@ def main(args):
             point_num_this = len(points_q3) // 3
             points_ele_all[id_point_ele:id_point_ele + len(points_q3)] = np.array(points_q3).astype(np.float32)
             intensities[id_point:id_point + point_num_this] = np.array(intensities_q3).astype(np.float32)
-            labels[id_point:id_point + point_num_this] = np.array(labels_q3).astype(np.uint8)
-            point_nums[id_quadrant] = point_num_this
+            if not for_test:
+                labels[id_point:id_point + point_num_this] = np.array(labels_q3).astype(np.uint8)
+            indices[id_point:id_point + point_num_this] = np.array(indices_q3).astype(np.uint16)
+            point_nums[id_quadrant] = np.array(point_num_this).astype(np.uint16)
 
             id_point_ele += len(points_q3)
             id_point += point_num_this
@@ -226,8 +228,10 @@ def main(args):
             point_num_this = len(points_q4) // 3
             points_ele_all[id_point_ele:id_point_ele + len(points_q4)] = np.array(points_q4).astype(np.float32)
             intensities[id_point:id_point + point_num_this] = np.array(intensities_q4).astype(np.float32)
-            labels[id_point:id_point + point_num_this] = np.array(labels_q4).astype(np.uint8)
-            point_nums[id_quadrant] = point_num_this
+            if not for_test:
+                labels[id_point:id_point + point_num_this] = np.array(labels_q4).astype(np.uint8)
+            indices[id_point:id_point + point_num_this] = np.array(indices_q4).astype(np.uint16)
+            point_nums[id_quadrant] = np.array(point_num_this).astype(np.uint16)
 
             id_point_ele += len(points_q4)
             id_point += point_num_this
@@ -252,9 +256,14 @@ def main(args):
     print("save to: %s\n" % bin_intensity_path)
     intensities.tofile(bin_intensity_path)
 
-    bin_label_path = os.path.join(dir_output, "data_fountain_label.bin")
-    print("save to: %s\n" % bin_label_path)
-    labels.tofile(bin_label_path)
+    if not for_test:
+        bin_label_path = os.path.join(dir_output, "data_fountain_label.bin")
+        print("save to: %s\n" % bin_label_path)
+        labels.tofile(bin_label_path)
+
+    bin_indices_path = os.path.join(dir_output, "data_fountain_indices.bin")
+    print("save to: %s\n" % bin_indices_path)
+    indices.tofile(bin_indices_path)
 
 
 def test(args):
@@ -276,8 +285,14 @@ def test(args):
     print(points_all[0])
     print(points_all[1])
 
-    bin_path = os.path.join(dir_output, "data_fountain_label.bin")
-    points_all = np.fromfile(bin_path, np.uint8)
+    if not args.for_test:
+        bin_path = os.path.join(dir_output, "data_fountain_label.bin")
+        points_all = np.fromfile(bin_path, np.uint8)
+        print(points_all[0])
+        print(points_all[1])
+
+    bin_path = os.path.join(dir_output, "data_fountain_indices.bin")
+    points_all = np.fromfile(bin_path, np.uint16)
     print(points_all[0])
     print(points_all[1])
 
@@ -286,6 +301,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dir_input', '-i', help='Path to data folder', required=True)
     parser.add_argument('--dir_output', '-o', help='Path to h5 folder', required=True)
+    parser.add_argument('--for_test', '-t', default=False, type=bool, help='transform test set', required=False)
     parser.add_argument('--max_samples', '-m', default=-1, type=int, help='The max num of sample', required=False)
     args = parser.parse_args()
     print(args)

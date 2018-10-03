@@ -242,3 +242,35 @@ def balance_classes(labels):
     repeat_num_probs = repeat_num_avg - repeat_num_floor
     repeat_num = repeat_num_floor + (np.random.rand(repeat_num_probs.shape[0]) < repeat_num_probs)
     return repeat_num.astype(np.int64)
+
+
+def load_bin(dir):
+    print("load bin")
+    bin_path = os.path.join(dir, "data_fountain_point.bin")
+    points_ele_all = np.fromfile(bin_path, np.float32)
+
+    bin_path = os.path.join(dir, "data_fountain_intensity.bin")
+    intensities = np.fromfile(bin_path, np.float32)
+
+    bin_path = os.path.join(dir, "data_fountain_point_num.bin")
+    point_nums = np.fromfile(bin_path, np.uint16).astype(int)
+
+    bin_path = os.path.join(dir, "data_fountain_label.bin")
+    labels = None
+    if os.path.exists(bin_path):
+        labels = np.fromfile(bin_path, np.uint8)
+
+    bin_path = os.path.join(dir, "data_fountain_indices.bin")
+    indices = None
+    if os.path.exists(bin_path):
+        indices = np.fromfile(bin_path, np.uint16).astype(int)
+
+    print("create index_length")
+    index_length = np.zeros((len(point_nums), 2), int)
+    index_sum = 0
+    for i in range(len(point_nums)):
+        index_length[i][0] = index_sum
+        index_length[i][1] = point_nums[i]
+        index_sum += point_nums[i]
+
+    return index_length, points_ele_all, intensities, labels, indices

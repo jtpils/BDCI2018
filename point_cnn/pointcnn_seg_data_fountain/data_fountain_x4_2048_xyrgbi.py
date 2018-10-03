@@ -60,6 +60,7 @@ epsilon = 1e-3
 
 # imput data
 data_dim = 3
+
 use_extra_features = True
 data_format = {"pts_xyz": 3}
 

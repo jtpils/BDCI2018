@@ -19,31 +19,6 @@ import tensorflow as tf
 from datetime import datetime
 
 
-def load_bin(dir):
-    print("load bin")
-    bin_path = os.path.join(dir, "data_fountain_point.bin")
-    points_ele_all = np.fromfile(bin_path, np.float32)
-
-    bin_path = os.path.join(dir, "data_fountain_intensity.bin")
-    intensities = np.fromfile(bin_path, np.float32)
-
-    bin_path = os.path.join(dir, "data_fountain_point_num.bin")
-    point_nums = np.fromfile(bin_path, np.uint16).astype(int)
-
-    bin_path = os.path.join(dir, "data_fountain_label.bin")
-    labels = np.fromfile(bin_path, np.uint8)
-
-    print("create index_length")
-    index_length = np.zeros((len(point_nums), 2), int)
-    index_sum = 0
-    for i in range(len(point_nums)):
-        index_length[i][0] = index_sum
-        index_length[i][1] = point_nums[i]
-        index_sum += point_nums[i]
-
-    return index_length, points_ele_all, intensities, labels
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dir_train', '-t', help='Path to dir of train set', required=True)
@@ -85,15 +60,15 @@ def main():
 
     if args.dir_val is None:
         print("only load train")
-        index_length_train, points_ele_train, intensities_train, labels_train = load_bin(args.dir_train)
+        index_length_train, points_ele_train, intensities_train, labels_train, _ = data_utils.load_bin(args.dir_train)
         index_length_val = index_length_train
         points_ele_val = points_ele_train
         intensities_val = intensities_train
         labels_val = labels_train
     else:
         print("load train and val")
-        index_length_train, points_ele_train, intensities_train, labels_train = load_bin(args.dir_train)
-        index_length_val, points_ele_val, intensities_val, labels_val = load_bin(args.dir_val)
+        index_length_train, points_ele_train, intensities_train, labels_train, _ = data_utils.load_bin(args.dir_train)
+        index_length_val, points_ele_val, intensities_val, labels_val, _ = data_utils.load_bin(args.dir_val)
 
     # shuffle
     index_length_train = data_utils.index_shuffle(index_length_train)
