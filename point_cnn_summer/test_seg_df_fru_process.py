@@ -26,22 +26,13 @@ from data_utils.data_fountain import df_utils
 import numpy as np
 import tensorflow as tf
 from datetime import datetime
+from multiprocessing import Process
 
 df_test_max_point_num = 44792
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dir_input', '-i', help='Path to input points files', required=True)
-    parser.add_argument('--dir_output', '-o', help='Path to save inference results', required=True)
-    parser.add_argument('--load_ckpt', '-l', help='Path to a check point file for load', required=True)
-    parser.add_argument('--repeat_num', '-r', help='Repeat number', type=int, default=1)
-    parser.add_argument('--sample_num', help='Point sample num', type=int, default=2048)
-    parser.add_argument('--model', '-m', help='Model to use', required=True)
-    parser.add_argument('--setting', '-x', help='Setting to use', required=True)
-
-    args = parser.parse_args()
-    print(args)
+def inference_frames_frus(args, framenames, gpu_id):
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
     model = importlib.import_module(args.model)
     sys.path.append(os.path.dirname(args.setting))
@@ -57,8 +48,6 @@ def main():
     if not os.path.exists(dir_output):
         print(dir_output, "Not Exists! Create", dir_output)
         os.makedirs(dir_output)
-
-    filenames = sorted(os.listdir(os.path.join(dir_input, 'pts')))
 
     max_point_num = df_test_max_point_num
     batch_size = args.repeat_num * math.ceil(max_point_num / sample_num)
@@ -103,10 +92,10 @@ def main():
 
         indices_batch_indices = np.tile(np.reshape(np.arange(batch_size), (batch_size, 1, 1)), (1, sample_num, 1))
 
-        for id_file, filename in enumerate(filenames):
+        for id_file, framename in enumerate(framenames):
             # Prepare inputs
             print('{}-Preparing datasets...'.format(datetime.now()))
-            frame_points, frame_intensities, _ = df_utils.load_frame(dir_input, filename)
+            frame_points, frame_intensities, _ = df_utils.load_frame(dir_input, framename)
 
             # split frame to quadrant
             quadrants_points, quadrants_intensities, _, quadrants_indices = \
@@ -168,17 +157,49 @@ def main():
                     results[index] = int(frame_categories[i])
                     i += 1
 
-            path_output = os.path.join(dir_output, filename)
+            path_output = os.path.join(dir_output, framename)
             with open(path_output, 'w') as file_seg:
                 for result in results:
                     file_seg.write(str(result) + "\n")
 
             frame_categories.clear()
 
-            print('{}-[Testing]-Iter: {:06d} \nseg  saved to {}'.format(datetime.now(), id_file, filename))
-            sys.stdout.flush()
+            print('PID:{}-{}-[Testing]-Iter: {:06d} \nseg  saved to {}'.format(os.getpid(),
+                                                                               datetime.now(), id_file, framename))
 
-    print('{}-Done!'.format(datetime.now()))
+    print('{}-Done! PID = {}'.format(datetime.now(), os.getpid()))
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dir_input', '-i', help='Path to input points files', required=True)
+    parser.add_argument('--dir_output', '-o', help='Path to save inference results', required=True)
+    parser.add_argument('--load_ckpt', '-l', help='Path to a check point file for load', required=True)
+    parser.add_argument('--repeat_num', '-r', help='Repeat number', type=int, default=1)
+    parser.add_argument('--sample_num', help='Point sample num', type=int, default=2048)
+    parser.add_argument('--model', '-m', help='Model to use', required=True)
+    parser.add_argument('--setting', '-x', help='Setting to use', required=True)
+
+    args = parser.parse_args()
+    print(args)
+
+    gpu_available = [0, 1, 2]
+    framenames = sorted(os.listdir(os.path.join(args.dir_input, 'pts')))
+
+    chunk_size = len(framenames) // len(gpu_available)
+    chunks_framenames = [framenames[i:i + chunk_size] for i in range(0, len(framenames), chunk_size)]
+    if len(chunks_framenames) > len(gpu_available):
+        chunks_framenames[len(chunks_framenames) - 2].extend(chunks_framenames[len(chunks_framenames) - 1])
+        del chunks_framenames[len(chunks_framenames) - 1]
+
+    tasks = []
+    for i, chunk_filepaths in enumerate(chunks_framenames):
+        task = Process(target=inference_frames_frus, args=(args, chunk_filepaths, gpu_available[i]))
+        tasks.append(task)
+        task.start()
+
+    for task in tasks:
+        task.join()
 
 
 if __name__ == '__main__':

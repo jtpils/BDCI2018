@@ -1,3 +1,7 @@
-cmd.txt
-model_data_fountain
-dataset_data_fountain
+.idea
+__pycache__/
+saver*/
+sampling/*.so
+data/
+*.pyc
+*.so

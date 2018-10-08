@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0
 
 
 # 接着训练49999
@@ -13,8 +13,8 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 # jinming
 #nohup 
-python3 ../train_val_seg_data_fountain_indensity.py \
--t ../dataset_data_fountain/trainall/h5/data_fountain_files.txt \
+python3 ../train_val_seg_data_fountain_intensity.py \
+-t ../dataset_data_fountain/trainval/train/h5/data_fountain_files.txt \
 -v ../dataset_data_fountain/trainval/val/h5/data_fountain_files.txt \
 -s ../model_data_fountain/h5/seg \
 -m pointcnn_seg_data_fountain \

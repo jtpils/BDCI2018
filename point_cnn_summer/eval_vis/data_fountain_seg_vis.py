@@ -71,8 +71,8 @@ def seg2color(seg):
 
 
 pts_file_root = "/home/leon/Disk/dataset/Downloads/DataFountain/TestSet/pts"
-seg_file_root = "/home/leon/Disk/dataset/DataFountain/test_results/fru_abs_intensity_810000"
-out_ply_root = "/home/leon/Disk/dataset/DataFountain/test_results/vis_fru_abs"
+seg_file_root = "/home/leon/Disk/dataset/DataFountain/test_results/trainval_2048_840k"
+out_ply_root = "/home/leon/Disk/dataset/DataFountain/test_results/vis_trainval_2048_840k"
 
 if not os.path.exists(out_ply_root):
     print(out_ply_root, "Not Exists! Create", out_ply_root)

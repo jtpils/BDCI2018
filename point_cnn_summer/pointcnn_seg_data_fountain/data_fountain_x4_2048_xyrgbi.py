@@ -7,7 +7,7 @@ num_parts = 8
 
 sample_num = 2048
 
-batch_size = 6
+batch_size = 12
 
 num_epochs = 1024
 
@@ -15,7 +15,7 @@ label_weights = []
 
 for c in range(num_parts):
     if c == 0:
-        label_weights.append(0.4)
+        label_weights.append(0.6)
     else:
         label_weights.append(1.0)
 
@@ -36,18 +36,19 @@ order = 'rxyz'
 scaling_range = [0, 0, 0, 'g']
 scaling_range_val = [0, 0, 0, 'u']
 
-x = 4
+x = 2
 
 # K, D, P, C
 xconv_params = [(8, 1, -1, 32 * x),
                 (12, 2, 768, 64 * x),
                 (16, 2, 384, 128 * x),
-                (16, 6, 128, 156 * x)]
+                (16, 2, 128, 156 * x)]
 
 # K, D, pts_layer_idx, qrs_layer_idx
-xdconv_params = [(16, 6, 3, 2),
-                 (12, 4, 2, 1),
-                 (8, 4, 1, 0)]
+xdconv_params = [(16, 2, 3, 3),
+                 (16, 2, 3, 2),
+                 (12, 2, 2, 1),
+                 (8, 2, 1, 0)]
 
 # C, dropout_rate
 fc_params = [(32 * x, 0.0), (32 * x, 0.5)]
@@ -60,7 +61,8 @@ epsilon = 1e-3
 
 # imput data
 data_dim = 3
-
+point_dim = 3
+extra_dim = 1
 use_extra_features = True
 data_format = {"pts_xyz": 3}
 
