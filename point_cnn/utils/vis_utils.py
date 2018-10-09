@@ -2,10 +2,14 @@ import plyfile
 import numpy as np
 
 
-def save_ply(points, colors, filename):
+def save_ply(path_out, points, colors, faces=None):
     vertex = np.array([tuple(p) for p in points], dtype=[('x', 'f4'), ('y', 'f4'), ('z', 'f4')])
 
     vertex_color = np.array([tuple(c) for c in colors], dtype=[('red', 'u1'), ('green', 'u1'), ('blue', 'u1')])
+
+    test = [tuple([f]) for f in faces]
+    print(test)
+    face = np.array([tuple([f]) for f in faces], dtype=[('vertex_indices', 'i4', (3,))])
 
     n = len(vertex)
     assert len(vertex_color) == n
@@ -18,8 +22,9 @@ def save_ply(points, colors, filename):
     for prop in vertex_color.dtype.names:
         vertex_all[prop] = vertex_color[prop]
 
-    ply = plyfile.PlyData([plyfile.PlyElement.describe(vertex_all, 'vertex')], text=False)
-    ply.write(filename)
+    ply = plyfile.PlyData([plyfile.PlyElement.describe(vertex_all, 'vertex'),
+                           plyfile.PlyElement.describe(face, 'face')], text=False)
+    ply.write(path_out)
 
 
 # {‘DontCare’: black, ‘cyclist’: red, ‘tricycle’: green, ‘smallMot’: blue,

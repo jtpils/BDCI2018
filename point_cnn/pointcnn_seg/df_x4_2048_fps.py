@@ -34,7 +34,7 @@ scaling_range_val = [0, 0, 0, 'u']
 sample_num_variance = 1 // 8
 sample_num_clip = 1 // 4
 
-x = 2
+x = 4
 
 xconv_param_name = ('K', 'D', 'P', 'C', 'links')
 xconv_params = [dict(zip(xconv_param_name, xconv_param)) for xconv_param in
@@ -47,7 +47,8 @@ with_global = True
 
 xdconv_param_name = ('K', 'D', 'pts_layer_idx', 'qrs_layer_idx')
 xdconv_params = [dict(zip(xdconv_param_name, xdconv_param)) for xdconv_param in
-                 [(16, 2, 3, 2),
+                 [(16, 2, 3, 3),
+                  (16, 2, 3, 2),
                   (16, 1, 2, 1),
                   (12, 1, 1, 0)]]
 

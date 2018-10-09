@@ -126,7 +126,7 @@ def inference_frames_frus(args, framenames, gpu_id):
             if args.save_ply:
                 print('{}-Saving ply of {}...'.format(datetime.now(), framename))
                 path_label_ply = os.path.join(dir_vis, framename[:-3] + 'ply')
-                vis_utils.save_ply(frame_data[:, 0:3], vis_utils.seg2color(labels_pred), path_label_ply)
+                vis_utils.save_ply(path_label_ply, frame_data[:, 0:3], vis_utils.seg2color(labels_pred))
 
             print('PID:{}-{}-[Testing]-Iter: {:06d} \nseg  saved to {}'.format(os.getpid(),
                                                                                datetime.now(), id_file, framename))
