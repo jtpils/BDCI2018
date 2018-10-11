@@ -4,7 +4,7 @@ num_class = 8
 
 sample_num = 2048
 
-batch_size = 12
+batch_size = 10
 
 num_epochs = 256
 
@@ -38,24 +38,23 @@ x = 4
 
 xconv_param_name = ('K', 'D', 'P', 'C', 'links')
 xconv_params = [dict(zip(xconv_param_name, xconv_param)) for xconv_param in
-                [(12, 1, -1, 16 * x, []),
-                 (16, 1, 768, 32 * x, []),
-                 (16, 2, 384, 64 * x, []),
-                 (16, 2, 128, 96 * x, [])]]
+                [(8, 1, -1, 32 * x, []),
+                 (12, 2, 768, 64 * x, []),
+                 (16, 2, 384, 128 * x, []),
+                 (16, 2, 128, 156 * x, [])]]
 
 with_global = True
 
 xdconv_param_name = ('K', 'D', 'pts_layer_idx', 'qrs_layer_idx')
 xdconv_params = [dict(zip(xdconv_param_name, xdconv_param)) for xdconv_param in
-                 [(16, 2, 3, 3),
-                  (16, 2, 3, 2),
-                  (16, 1, 2, 1),
-                  (12, 1, 1, 0)]]
+                 [(16, 2, 3, 2),
+                  (12, 2, 2, 1),
+                  (8, 2, 1, 0)]]
 
 fc_param_name = ('C', 'dropout_rate')
 fc_params = [dict(zip(fc_param_name, fc_param)) for fc_param in
-             [(16 * x, 0.0),
-              (16 * x, 0.7)]]
+             [(32 * x, 0.0),
+              (32 * x, 0.5)]]
 
 sampling = 'fps'
 

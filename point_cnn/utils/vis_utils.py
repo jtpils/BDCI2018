@@ -7,8 +7,8 @@ def save_ply(path_out, points, colors, faces=None):
 
     vertex_color = np.array([tuple(c) for c in colors], dtype=[('red', 'u1'), ('green', 'u1'), ('blue', 'u1')])
 
-    test = [tuple([f]) for f in faces]
-    print(test)
+    # test = [tuple([f]) for f in faces]
+    # print(test)
     face = np.array([tuple([f]) for f in faces], dtype=[('vertex_indices', 'i4', (3,))])
 
     n = len(vertex)
