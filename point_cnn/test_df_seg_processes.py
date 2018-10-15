@@ -1,15 +1,24 @@
 #!/usr/bin/python3
 
 # -i
-# /home/leon/DataFountain/test
+# /home/leon/Disk/dataset/Downloads/DataFountain/TestSet
 # -o
-# /home/leon/DataFountain/test_result
+# /home/leon/Disk/dataset/DataFountain/test_results/opensrc_trainval_weights
 # -l
-# /home/leon/Disk/models/data_fountain/h5/seg/pointcnn_seg_data_fountain_data_fountain_x4_2048_xyrgbi_fru+intensity_1777_2018-09-26-20-33-18/ckpts/iter-810000
+# /home/leon/Disk/models/data_fountain/pointcnn_seg_df_x4_2048_fps_2018-10-11-06-30-01_6985/ckpts/iter-75000
 # -m
-# pointcnn_seg_data_fountain
+# pointcnn_seg
 # -x
-# ./pointcnn_seg_data_fountain/data_fountain_x4_2048_xyrgbi_intensity
+# df_x4_2048_fps
+# -g
+# 0
+# -s
+
+# python3 test_df_seg_processes.py -i /home/leon/Disk/datasets/data_fountain/test \
+# -o /home/leon/Disk/datasets/data_fountain/test_results \
+# -l /home/leon/Disk/models/data_fountain/h5/seg/\
+# pointcnn_seg_df_x4_2048_fps_2018-10-12-20-04-12_22301/ckpts/iter-80000 \
+# -m pointcnn_seg -x df_x4_2048_fps -g 0,1,2 -s
 
 """Testing On Segmentation Task."""
 

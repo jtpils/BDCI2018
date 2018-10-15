@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 from utils import df_utils
 from utils import vis_utils
@@ -166,22 +167,27 @@ def save_bbox(path, bboxes):
 
 
 def prepare_df_box(dir_df, framenames, dir_out):
+    i = 0
     for framename in framenames:
-        print(framename)
+        i += 1
+        print(os.getpid(), i, framename)
         boxes = bound_point(dir_df, framename, max_distance, padding)
         boxes_merged = merge_intersecting_boxes(boxes)
 
         path_bbox = os.path.join(dir_out, "bbox", framename)
         save_bbox(path_bbox, boxes_merged)
-        path_vis = os.path.join(dir_out, "vis_bbox", framename[:-3] + 'ply')
-        vis_box(path_vis, boxes_merged)
+
+        # path_vis = os.path.join(dir_out, "vis_bbox", framename[:-3] + 'ply')
+        # vis_box(path_vis, boxes_merged)
 
 
 if __name__ == '__main__':
-    num_prccess = 6
-    dir_input = "/home/leon/Disk/dataset/Downloads/DataFountain/dataset/training"
-    dir_output = "/home/leon/Disk/dataset/Downloads/DataFountain/dataset/training"
-    max_distance = 1
+    # print(os.path.join(os.path.dirname("__file__"), os.path.pardir, os.path.pardir))
+    # os.chdir(os.path.join(os.path.dirname("__file__"), os.path.pardir, os.path.pardir))
+    num_prccess = 16
+    dir_input = "/home/leon/Disk/datasets/data_fountain/trainval/train"
+    dir_output = "/home/leon/Disk/datasets/data_fountain/trainval/train"
+    max_distance = 1.2
     padding = 0.3
 
     dir_bbox = os.path.join(dir_output, 'bbox')

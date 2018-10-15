@@ -7,10 +7,6 @@ def save_ply(path_out, points, colors, faces=None):
 
     vertex_color = np.array([tuple(c) for c in colors], dtype=[('red', 'u1'), ('green', 'u1'), ('blue', 'u1')])
 
-    # test = [tuple([f]) for f in faces]
-    # print(test)
-    face = np.array([tuple([f]) for f in faces], dtype=[('vertex_indices', 'i4', (3,))])
-
     n = len(vertex)
     assert len(vertex_color) == n
 
@@ -20,10 +16,14 @@ def save_ply(path_out, points, colors, faces=None):
         vertex_all[prop] = vertex[prop]
 
     for prop in vertex_color.dtype.names:
-        vertex_all[prop] = vertex_color[prop]
+        vertex_all[prop] = vertex_color[prop]\
 
-    ply = plyfile.PlyData([plyfile.PlyElement.describe(vertex_all, 'vertex'),
-                           plyfile.PlyElement.describe(face, 'face')], text=False)
+    if faces is not None:
+        face = np.array([tuple([f]) for f in faces], dtype=[('vertex_indices', 'i4', (3,))])
+        ply = plyfile.PlyData([plyfile.PlyElement.describe(vertex_all, 'vertex'),
+                               plyfile.PlyElement.describe(face, 'face')], text=False)
+    else:
+        ply = plyfile.PlyData([plyfile.PlyElement.describe(vertex_all, 'vertex')], text=False)
     ply.write(path_out)
 
 
