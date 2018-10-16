@@ -17,12 +17,13 @@ import numpy as np
 import pointfly as pf
 import tensorflow as tf
 from datetime import datetime
+from utils import df_utils
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--filelist', '-t', help='Path to training set ground truth (.txt)', required=True)
-    parser.add_argument('--filelist_val', '-v', help='Path to validation set ground truth (.txt)', required=True)
+    parser.add_argument('--filelist_val', '-v', help='Path to validation set ground truth (.txt)', required=False)
     parser.add_argument('--load_ckpt', '-l', help='Path to a check point file for load')
     parser.add_argument('--save_folder', '-s', help='Path to folder for saving check points and summary', required=True)
     parser.add_argument('--model', '-m', help='Model to use', required=True)
@@ -69,15 +70,21 @@ def main():
         seg_list = None
         seg_list_idx = None
         filelist_train = args.filelist
+
     data_train, data_num_train, label_train = data_utils.load_seg_df(filelist_train)
-    data_val, data_num_val, label_val = data_utils.load_seg_df(args.filelist_val)
+    if args.filelist_val is None:
+        print("train with no val data")
+        data_val = data_train[0:10]
+        data_num_val = data_num_train[0:10]
+        label_val = label_train[0:10]
+    else:
+        data_val, data_num_val, label_val = data_utils.load_seg_df(args.filelist_val)
 
     # shuffle
     data_train, data_num_train, label_train = \
         data_utils.grouped_shuffle([data_train, data_num_train, label_train])
 
     num_train = data_train.shape[0]
-    point_num = data_train.shape[1]
     num_val = data_val.shape[0]
     print('{}-{:d}/{:d} training/validation samples.'.format(datetime.now(), num_train, num_val))
     batch_num = (num_train * num_epochs + batch_size - 1) // batch_size
@@ -87,19 +94,18 @@ def main():
 
     ######################################################################
     # Placeholders
-    indices = tf.placeholder(tf.int32, shape=(None, None, 2), name="indices")
     xforms = tf.placeholder(tf.float32, shape=(None, 3, 3), name="xforms")
     rotations = tf.placeholder(tf.float32, shape=(None, 3, 3), name="rotations")
     jitter_range = tf.placeholder(tf.float32, shape=(1), name="jitter_range")
     global_step = tf.Variable(0, trainable=False, name='global_step')
     is_training = tf.placeholder(tf.bool, name='is_training')
 
-    pts_fts = tf.placeholder(tf.float32, shape=(None, point_num, setting.data_dim), name='pts_fts')
-    labels_seg = tf.placeholder(tf.int64, shape=(None, point_num), name='labels_seg')
-    labels_weights = tf.placeholder(tf.float32, shape=(None, point_num), name='labels_weights')
+    max_sample_num = sample_num + sample_num * setting.sample_num_clip
+    pts_fts_sampled = tf.placeholder(tf.float32, shape=(None, max_sample_num, setting.data_dim), name='pts_fts')
+    labels_sampled = tf.placeholder(tf.int64, shape=(None, max_sample_num), name='labels_seg')
+    labels_weights_sampled = tf.placeholder(tf.float32, shape=(None, max_sample_num), name='labels_weights')
 
     ######################################################################
-    pts_fts_sampled = tf.gather_nd(pts_fts, indices=indices, name='pts_fts_sampled')
     features_augmented = None
     if setting.data_dim > 3:
         points_sampled, features_sampled = tf.split(pts_fts_sampled,
@@ -122,9 +128,7 @@ def main():
     else:
         points_sampled = pts_fts_sampled
     points_augmented = pf.augment(points_sampled, xforms, jitter_range)
-
-    labels_sampled = tf.gather_nd(labels_seg, indices=indices, name='labels_sampled')
-    labels_weights_sampled = tf.gather_nd(labels_weights, indices=indices, name='labels_weight_sampled')
+    # points_augmented = points_sampled
 
     net = model.Net(points_augmented, features_augmented, is_training, setting)
     logits = net.logits
@@ -140,16 +144,20 @@ def main():
         t_1_per_class_acc_op, t_1_per_class_acc_update_op = \
             tf.metrics.mean_per_class_accuracy(labels_sampled, predictions, setting.num_class,
                                                weights=labels_weights_sampled)
+        t_1_mean_iou_op, t_1_mean_iou_update_op = \
+            tf.metrics.mean_iou(labels_sampled, predictions, setting.num_class, labels_weights_sampled)
     reset_metrics_op = tf.variables_initializer([var for var in tf.local_variables()
                                                  if var.name.split('/')[0] == 'metrics'])
 
     _ = tf.summary.scalar('loss/train', tensor=loss_mean_op, collections=['train'])
     _ = tf.summary.scalar('t_1_acc/train', tensor=t_1_acc_op, collections=['train'])
     _ = tf.summary.scalar('t_1_per_class_acc/train', tensor=t_1_per_class_acc_op, collections=['train'])
+    _ = tf.summary.scalar('t_1_mean_iou/train', tensor=t_1_mean_iou_op, collections=['train'])
 
     _ = tf.summary.scalar('loss/val', tensor=loss_mean_op, collections=['val'])
     _ = tf.summary.scalar('t_1_acc/val', tensor=t_1_acc_op, collections=['val'])
     _ = tf.summary.scalar('t_1_per_class_acc/val', tensor=t_1_per_class_acc_op, collections=['val'])
+    _ = tf.summary.scalar('t_1_mean_iou/val', tensor=t_1_mean_iou_op, collections=['val'])
 
     lr_exp_op = tf.train.exponential_decay(setting.learning_rate_base, global_step, setting.decay_steps,
                                            setting.decay_rate, staircase=True)
@@ -161,7 +169,7 @@ def main():
     elif setting.optimizer == 'momentum':
         optimizer = tf.train.MomentumOptimizer(learning_rate=lr_clip_op, momentum=setting.momentum, use_nesterov=True)
     else:
-        optimizer = tf.train.AdamOptimizer(learning_rate=lr_clip_op, epsilon=setting.epsilon)   # adam
+        optimizer = tf.train.AdamOptimizer(learning_rate=lr_clip_op, epsilon=setting.epsilon)  # adam
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
         train_op = optimizer.minimize(loss_op + reg_loss, global_step=global_step)
@@ -216,27 +224,31 @@ def main():
                     labels_batch = label_val[start_idx:end_idx, ...]
                     weights_batch = np.array(label_weights_list)[labels_batch]
 
+                    points_batch_sampled, labels_batch_sampled, weights_batch_sampled = \
+                        df_utils.group_sampling(points_batch, labels_batch, weights_batch, sample_num,
+                                                points_num_batch)
+
                     xforms_np, rotations_np = pf.get_xforms(batch_size_val,
                                                             rotation_range=rotation_range_val,
                                                             scaling_range=scaling_range_val,
                                                             order=setting.rotation_order)
-                    sess.run([loss_mean_update_op, t_1_acc_update_op, t_1_per_class_acc_update_op],
+                    sess.run([loss_mean_update_op, t_1_acc_update_op, t_1_per_class_acc_update_op,
+                              t_1_mean_iou_update_op],
                              feed_dict={
-                                 pts_fts: points_batch,
-                                 indices: pf.get_indices(batch_size_val, sample_num, points_num_batch),
+                                 pts_fts_sampled: points_batch_sampled,
                                  xforms: xforms_np,
                                  rotations: rotations_np,
                                  jitter_range: np.array([jitter_val]),
-                                 labels_seg: labels_batch,
-                                 labels_weights: weights_batch,
+                                 labels_sampled: labels_batch_sampled,
+                                 labels_weights_sampled: weights_batch_sampled,
                                  is_training: False,
                              })
 
-                loss_val, t_1_acc_val, t_1_per_class_acc_val, summaries_val = sess.run(
-                    [loss_mean_op, t_1_acc_op, t_1_per_class_acc_op, summaries_val_op])
+                loss_val, t_1_acc_val, t_1_per_class_acc_val, t_1_mean_iou_val, summaries_val = sess.run(
+                    [loss_mean_op, t_1_acc_op, t_1_per_class_acc_op, t_1_mean_iou_op, summaries_val_op])
                 summary_writer.add_summary(summaries_val, batch_idx_train)
-                print('{}-[Val  ]-Average:      Loss: {:.4f}  T-1 Acc: {:.4f}  T-1 mAcc: {:.4f}'
-                      .format(datetime.now(), loss_val, t_1_acc_val, t_1_per_class_acc_val))
+                print('{}-[Val  ]-Average:      Loss: {:.4f}  T-1 Acc: {:.4f}  T-1 mAcc: {:.4f}  T-1 mIOU: {:.4f}'
+                      .format(datetime.now(), loss_val, t_1_acc_val, t_1_per_class_acc_val, t_1_mean_iou_val))
                 sys.stdout.flush()
                 ######################################################################
 
@@ -265,30 +277,34 @@ def main():
             offset = max(offset, -sample_num * setting.sample_num_clip)
             offset = min(offset, sample_num * setting.sample_num_clip)
             sample_num_train = sample_num + offset
+            points_batch_sampled, labels_batch_sampled, weights_batch_sampled = \
+                df_utils.group_sampling(points_batch, labels_batch, weights_batch, sample_num_train, points_num_batch)
+
             xforms_np, rotations_np = pf.get_xforms(batch_size_train,
                                                     rotation_range=rotation_range,
                                                     scaling_range=scaling_range,
                                                     order=setting.rotation_order)
             sess.run(reset_metrics_op)
-            sess.run([train_op, loss_mean_update_op, t_1_acc_update_op, t_1_per_class_acc_update_op],
+            sess.run([train_op, loss_mean_update_op, t_1_acc_update_op, t_1_per_class_acc_update_op,
+                      t_1_mean_iou_update_op],
                      feed_dict={
-                         pts_fts: points_batch,
-                         indices: pf.get_indices(batch_size_train, sample_num_train, points_num_batch),
+                         pts_fts_sampled: points_batch_sampled,
                          xforms: xforms_np,
                          rotations: rotations_np,
                          jitter_range: np.array([jitter]),
-                         labels_seg: labels_batch,
-                         labels_weights: weights_batch,
+                         labels_sampled: labels_batch_sampled,
+                         labels_weights_sampled: weights_batch_sampled,
                          is_training: True,
                      })
             if batch_idx_train % 10 == 0:
-                loss, t_1_acc, t_1_per_class_acc, summaries = sess.run([loss_mean_op,
-                                                                        t_1_acc_op,
-                                                                        t_1_per_class_acc_op,
-                                                                        summaries_op])
+                loss, t_1_acc, t_1_per_class_acc, t_1_mean_iou, summaries = sess.run([loss_mean_op,
+                                                                                      t_1_acc_op,
+                                                                                      t_1_per_class_acc_op,
+                                                                                      t_1_mean_iou_op,
+                                                                                      summaries_op])
                 summary_writer.add_summary(summaries, batch_idx_train)
-                print('{}-[Train]-Iter: {:06d}  Loss: {:.4f}  T-1 Acc: {:.4f}  T-1 mAcc: {:.4f}'
-                      .format(datetime.now(), batch_idx_train, loss, t_1_acc, t_1_per_class_acc))
+                print('{}-[Train]-Iter: {:06d}  Loss: {:.4f}  T-1 Acc: {:.4f}  T-1 mAcc: {:.4f}  T-1 mIOU: {:.4f}'
+                      .format(datetime.now(), batch_idx_train, loss, t_1_acc, t_1_per_class_acc, t_1_mean_iou))
                 sys.stdout.flush()
             ######################################################################
         print('{}-Done!'.format(datetime.now()))
