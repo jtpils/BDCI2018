@@ -18,6 +18,7 @@ import tensorflow as tf
 import threading
 
 from config import *
+from config.df_squeezeSeg_config import df_squeezeSeg_config
 from imdb import kitti
 from utils.util import *
 from nets import *
@@ -57,7 +58,7 @@ def train():
         'Selected neural net architecture not supported: {}'.format(FLAGS.net)
 
     if FLAGS.net == 'squeezeSeg':
-      mc = kitti_squeezeSeg_config()
+      mc = df_squeezeSeg_config()
       mc.PRETRAINED_MODEL_PATH = FLAGS.pretrained_model_path
       model = SqueezeSeg(mc)
 
