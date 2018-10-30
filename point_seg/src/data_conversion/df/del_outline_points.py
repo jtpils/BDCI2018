@@ -21,7 +21,7 @@ def clear_data(dir_df, framenames, dir_out):
 
         pts_ins_cleared = np.array(pts_ins_cleared)
         categories_cleared = np.array(categories_cleared)
-        df_utils.save_frame_bin(dir_out, framename, pts_ins_cleared, categories_cleared, False)
+        df_utils.save_frame_to_bin(dir_out, framename, pts_ins_cleared, categories_cleared, False)
 
 
 if __name__ == '__main__':

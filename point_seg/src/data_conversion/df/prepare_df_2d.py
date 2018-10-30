@@ -86,7 +86,7 @@ def df_to_2d(dir_df, framenames, dir_out, num_height=32, num_width=2048//2):
 
 
 if __name__ == '__main__':
-    num_prccess = 3
+    num_prccess = 1
     dir_input = "/home/leon/Disk/dataset/DataFountain/training_cleared/data_bin"
     dir_output = "/home/leon/Disk/dataset/DataFountain/training_cleared"
 

@@ -35,7 +35,7 @@ def load_frame(dir_data, filename):
     return data, categories
 
 
-def save_frame_bin(dir_data, filename, pts_ins, categories, vis=False):
+def save_frame_to_bin(dir_data, filename, pts_ins, categories, vis=False):
     categories = categories.reshape(categories.shape[0], 1)
     pts_ins_cates = np.concatenate((pts_ins, categories), axis=1)
     path = os.path.join(dir_data, 'data_bin', filename[:-3] + 'npy')
@@ -44,3 +44,24 @@ def save_frame_bin(dir_data, filename, pts_ins, categories, vis=False):
     if vis:
         path = os.path.join(dir_data, 'ply_colored', filename[:-3] + 'ply')
         vis_utils.save_ply(path, pts_ins[:, 0:3], vis_utils.seg2color(categories))
+
+
+def save_frame_bin(dir_out, framename, pts_ins_cates, vis=False):
+    path = os.path.join(dir_out, framename)
+    np.save(path, pts_ins_cates)
+    if vis:
+        path = os.path.join(dir_out, '../ply_colored', framename[:-3] + 'ply')
+        # test = pts_ins_cates[:, -1].astype(np.int32)
+        # test_p = pts_ins_cates[:, 0:3]
+        vis_utils.save_ply(path, pts_ins_cates[:, 0:3],
+                           vis_utils.seg2color(pts_ins_cates[:, -1].astype(np.int32)))
+
+
+def load_frame_bin(path):
+    pts_ins_cates = np.load(path)
+    # e = 0.1
+    # for p in pts_ins_cates:
+    #     p[4] += e
+    return pts_ins_cates
+
+
