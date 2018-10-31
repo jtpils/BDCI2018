@@ -8,14 +8,14 @@ batch_size = 8
 
 num_epochs = 256
 
-label_weights = [0.4, 0.95, 0.97, 0.8, 0.85,  0.99, 1.0, 0.9]
+label_weights = [0.4, 0.95, 0.97, 0.7, 0.8,  0.99, 1.0, 0.9]
 # label_weights = [0.1, 0.7, 0.8, 0.4, 0.5, 0.9, 1.0, 0.6]
 # for c in range(num_class):
 #     label_weights.append(1.0)
 
 learning_rate_base = 0.005
-decay_steps = 50000
-decay_rate = 0.7
+decay_steps = 80000
+decay_rate = 0.8
 learning_rate_min = 1e-6
 
 step_val = 5000

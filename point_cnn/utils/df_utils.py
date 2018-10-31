@@ -155,6 +155,33 @@ def group_sampling(pts_fts, labels, label_weights, sample_num, pts_nums):
     return np.array(pts_fts_sampled), np.array(labels_sampled), np.array(label_weights_sampled)
 
 
+def group_sampling_fru(fru_batch, sample_num, label_weights_list):
+    batch_size = len(fru_batch)
+    pts_fts_sampled = []
+    labels_sampled = []
+    label_weights_sampled = []
+
+    for i in range(batch_size):
+        pt_num = fru_batch[i].shape[0]
+        pool_size = pt_num
+
+        if pool_size > sample_num:
+            choices = np.random.choice(pool_size, sample_num, replace=False)
+        else:
+            choices = np.concatenate((np.random.choice(pool_size, pool_size, replace=False),
+                                      np.random.choice(pool_size, sample_num - pool_size, replace=True)))
+        if pool_size < pt_num:
+            choices_pool = np.random.choice(pt_num, pool_size, replace=False)
+            choices = choices_pool[choices]
+
+        pts_fts_sampled.append(fru_batch[i][choices, 0:4])
+        label_sampled = fru_batch[i][choices, 4].astype(np.int32)
+        labels_sampled.append(label_sampled)
+        label_weights_sampled.append(np.array(label_weights_list)[label_sampled])
+
+    return np.array(pts_fts_sampled), np.array(labels_sampled), np.array(label_weights_sampled)
+
+
 def index_shuffle(index_length):
     shuffle_indices = np.arange(index_length.shape[0])
     np.random.shuffle(shuffle_indices)

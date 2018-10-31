@@ -193,6 +193,22 @@ def load_seg_df(filelist):
             np.concatenate(labels_seg, axis=0))
 
 
+def load_bin_all(dir_bin, path_filelist):
+    with open(path_filelist, 'r') as f:
+        filenames = f.readlines()
+    list_fru_data = []
+    max_point_num = 0
+    for filename in filenames:
+        filename = filename.strip()
+        path = os.path.join(dir_bin, filename + '.npy')
+        # x, y, z, intensity, category
+        fru_data = np.load(path)
+        if max_point_num < fru_data.shape[0]:
+            max_point_num = fru_data.shape[0]
+        list_fru_data.append(fru_data)
+    return list_fru_data, max_point_num
+
+
 def balance_classes(labels):
     _, inverse, counts = np.unique(labels, return_inverse=True, return_counts=True)
     counts_max = np.amax(counts)

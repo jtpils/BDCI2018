@@ -1,5 +1,6 @@
 import plyfile
 import numpy as np
+from matplotlib import pyplot as plt
 
 
 def save_ply(path_out, points, colors, faces=None):
@@ -29,14 +30,25 @@ def save_ply(path_out, points, colors, faces=None):
 
 # {‘DontCare’: black, ‘cyclist’: red, ‘tricycle’: green, ‘smallMot’: blue,
 # ‘bigMot’ light blue: 4, ‘pink’: 5, ‘crowds’: yellow, ‘unknown’: OrangeRed}
-def seg2color(seg):
-    color_list = [(0, 0, 0), (255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255), (255, 0, 255),
+color_list = [(100, 100, 100), (255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255), (255, 0, 255),
                   (	255, 255, 0), (255, 69, 0), (255, 0, 0), (0, 144, 161), (106, 107, 128), (254, 230, 0),
                   (0, 255, 255), (255, 167, 254), (233, 93, 189), (0, 100, 0), (132, 169, 1), (150, 0, 61),
                   (188, 136, 0), (0, 0, 255)]
+def seg2color(seg):
     abn_color = (0, 0, 0)
     color = []
 
     for s in seg:
         color.append(color_list[s])
     return color
+
+
+def save_2d(path_out, mask_img):
+    img = np.zeros((mask_img.shape[0], mask_img.shape[1], 3), np.int32)
+    for i in range(mask_img.shape[0]):
+        for j in range(mask_img.shape[1]):
+            r, g, b = color_list[np.int32(mask_img[i][j])]
+            img[i][j] = np.array([r, g, b]).astype(np.int32)
+    plt.imshow(img)
+    plt.axis('off')
+    plt.savefig(path_out)

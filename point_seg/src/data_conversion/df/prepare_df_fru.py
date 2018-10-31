@@ -21,19 +21,19 @@ def split_to_fru(pts_ins_cates):
         x = p[0]
         y = p[1]
         z = p[2]
-        if y >= abs(x):
-            data_front.append(p)
-        elif y <= -abs(x):
-            y = -y
-            data_back.append(np.array([x, y, z, p[3], p[4]]))
-        elif x < -abs(y):
+        if y > abs(x):
             x_rotated = y
             y_rotated = -x
-            data_left.append(np.array([x_rotated, y_rotated, z, p[3], p[4]]))
-        elif x > abs(y):
+            data_front.append(np.array([x_rotated, y_rotated, z, p[3], p[4]]))
+        elif y < -abs(x):
             x_rotated = -y
             y_rotated = x
-            data_right.append(np.array([x_rotated, y_rotated, z, p[3], p[4]]))
+            data_back.append(np.array([x_rotated, y_rotated, z, p[3], p[4]]))
+        elif x <= -abs(y):
+            x_rotated = -x
+            data_left.append(np.array([x_rotated, y, z, p[3], p[4]]))
+        elif x >= abs(y):
+            data_right.append(p)
     return [np.array(data_front), np.array(data_back),
             np.array(data_left), np.array(data_right)]
 
