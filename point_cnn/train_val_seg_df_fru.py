@@ -67,7 +67,7 @@ def main():
     list_fru_train, max_point_num_train = data_utils.load_bin_all(dir_bin, path_filelist_train)
     if path_filelist_val is None:
         print("train with no val data")
-        list_fru_val = list_fru_train[0:10]
+        list_fru_val = list_fru_train[0:100]
         max_point_num_val = 0
     else:
         list_fru_val, max_point_num_val = data_utils.load_bin_all(dir_bin, path_filelist_val)

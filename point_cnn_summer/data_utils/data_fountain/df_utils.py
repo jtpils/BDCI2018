@@ -61,28 +61,28 @@ def split_frame_to_quadrants(points, intensities, categories):
         x, y, z = point
         if x >= 0 and y > 0:
             id_quadrant = 0
-            quadrants_points[id_quadrant].append([x, y, z])
+            quadrants_points[id_quadrant].append([abs(x), abs(y), z])
             quadrants_intensities[id_quadrant].append(intensities[i])
             if categories is not None:
                 quadrants_categories[id_quadrant].append(categories[i])
             quadrants_indices[id_quadrant].append(i)
         elif x < 0 and y >= 0:
             id_quadrant = 1
-            quadrants_points[id_quadrant].append([x, y, z])
+            quadrants_points[id_quadrant].append([abs(x), abs(y), z])
             quadrants_intensities[id_quadrant].append(intensities[i])
             if categories is not None:
                 quadrants_categories[id_quadrant].append(categories[i])
             quadrants_indices[id_quadrant].append(i)
         elif x <= 0 and y < 0:
             id_quadrant = 2
-            quadrants_points[id_quadrant].append([x, y, z])
+            quadrants_points[id_quadrant].append([abs(x), abs(y), z])
             quadrants_intensities[id_quadrant].append(intensities[i])
             if categories is not None:
                 quadrants_categories[id_quadrant].append(categories[i])
             quadrants_indices[id_quadrant].append(i)
         elif x > 0 and y <= 0:
             id_quadrant = 3
-            quadrants_points[id_quadrant].append([x, y, z])
+            quadrants_points[id_quadrant].append([abs(x), abs(y), z)])
             quadrants_intensities[id_quadrant].append(intensities[i])
             if categories is not None:
                 quadrants_categories[id_quadrant].append(categories[i])
