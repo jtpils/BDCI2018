@@ -1,7 +1,10 @@
 .idea
 __pycache__/
 saver*/
+sampling/*.o
 sampling/*.so
+knn/*.o
+knn/*.so
 data/
 *.pyc
 *.so

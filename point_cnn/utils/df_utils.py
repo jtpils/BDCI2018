@@ -172,6 +172,29 @@ def clear_data(pts_ins, categories):
     return pts_ins_cleared, categories_cleared, scene_indices
 
 
+def clear_data_2(pts_ins, categories):
+    pts_ins_cleared = []
+    categories_cleared = []
+    scene_indices = []
+    if categories is None:
+        for i, p in enumerate(pts_ins):
+            # if abs(p[0]) < 0.5 and abs(p[1]) < 0.5 and abs(p[2]) < 0.5:
+            #     print("ins", p[3])
+            if not (abs(p[0]) < 2 and abs(p[1]) < 2 and abs(p[2]) < 2 and p[3] < 0.2):
+                pts_ins_cleared.append(p)
+                scene_indices.append(i)
+    else:
+        i = 0
+        for p, c in zip(pts_ins, categories):
+            if not (abs(p[0]) < 2 and abs(p[1]) < 2 and abs(p[2]) < 2 and p[3] < 0.2):
+                pts_ins_cleared.append(p)
+                categories_cleared.append(c)
+                scene_indices.append(i)
+                i += 1
+
+    return pts_ins_cleared, categories_cleared, scene_indices
+
+
 def compute_frames_quadrants_max_point_num(filepaths):
     max_point_num = 0
     for filepath in filepaths:
@@ -234,7 +257,7 @@ def group_sampling(pts_fts, labels, label_weights, sample_num, pts_nums):
     return np.array(pts_fts_sampled), np.array(labels_sampled), np.array(label_weights_sampled)
 
 
-def group_sampling_fru(fru_batch, sample_num, label_weights_list):
+def group_sampling_fru(fru_batch, sample_num, label_weights_list=None):
     batch_size = len(fru_batch)
     pts_fts_sampled = []
     labels_sampled = []
@@ -256,9 +279,22 @@ def group_sampling_fru(fru_batch, sample_num, label_weights_list):
         pts_fts_sampled.append(fru_batch[i][choices, 0:4])
         label_sampled = fru_batch[i][choices, 4].astype(np.int32)
         labels_sampled.append(label_sampled)
-        label_weights_sampled.append(np.array(label_weights_list)[label_sampled])
+        if label_weights_list is not None:
+            label_weights_sampled.append(np.array(label_weights_list)[label_sampled])
 
     return np.array(pts_fts_sampled), np.array(labels_sampled), np.array(label_weights_sampled)
+
+
+def sampling_infer(fru_pts_ins, sample_num):
+    pool_size = len(fru_pts_ins)
+
+    if pool_size > sample_num:
+        choices = np.random.choice(pool_size, sample_num, replace=False)
+    else:
+        choices = np.concatenate((np.random.choice(pool_size, pool_size, replace=False),
+                                  np.random.choice(pool_size, sample_num - pool_size, replace=True)))
+
+    return np.array(fru_pts_ins)[choices]
 
 
 def index_shuffle(index_length):
