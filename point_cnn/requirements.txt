@@ -1,0 +1,8 @@
+Cython==0.28.5
+h5py==2.8.0
+matplotlib==3.0.0
+numpy==1.15.1
+plyfile==0.6
+tensorboard==1.10.0
+tensorflow-gpu==1.10.0
+transforms3d==0.3.1

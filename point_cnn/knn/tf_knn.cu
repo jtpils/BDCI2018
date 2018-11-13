@@ -9,7 +9,6 @@
 
 // Includes
 #include <cstdio>
-#include <iostream>
 #include "cuda.h"
 
 // Constants used by the program
@@ -291,9 +290,4 @@ void myknnLauncher(int batch_size, int qrs_num, int pts_num, int channels_num,
         // Kernel 3: Compute square root of k first elements
         cuParallelSqrt<<<g_k_16x16,t_k_16x16>>>(dist_dev, query_width, k);
     }
-}
-
-void farthestpointsamplingLauncher(int b,int n,int m,const float * inp,float * temp,int * out){
-    std::cout << "test" << std::endl;
-  // farthestpointsamplingKernel<<<32,512>>>(b,n,m,inp,temp,out);
 }

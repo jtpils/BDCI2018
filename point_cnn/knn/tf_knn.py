@@ -52,8 +52,8 @@ if __name__ == '__main__':
     dis, ids = knn(k, queries, points)
 
     rul = tf.gather_nd(points, ids)
-    # printer = tf.Print(rul, [rul])
+    printer = tf.Print(rul, [rul],first_n=10, summarize=20)
 
     with tf.Session() as sess:
-        sess.run(rul)
+        sess.run(printer)
 
