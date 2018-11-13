@@ -3,46 +3,99 @@
 #include "tensorflow/core/framework/shape_inference.h"
 #include "tensorflow/core/framework/common_shape_fns.h"
 #include <cuda_runtime.h>
+//#include <iostream>
 
 using namespace tensorflow;
-REGISTER_OP("KNN")
+//using namespace std;
+
+REGISTER_OP("MyKnn")
 .Attr("k: int")
 .Input("queries: float32")
 .Input("points: float32")
 .Output("dis: float32")
 .Output("indices: int32")
 .SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+
     ::tensorflow::shape_inference::ShapeHandle dims1; // batch_size * queries_num * channels
     c->WithRank(c->input(0), 3, &dims1);
     ::tensorflow::shape_inference::ShapeHandle dims2; // batch_size * points_num * channels
     c->WithRank(c->input(1), 3, &dims2);
+
     int k;
     TF_RETURN_IF_ERROR(c->GetAttr("k", &k));
 
+    // batch_size * queries_num * points_num
     ::tensorflow::shape_inference::ShapeHandle output_dis = c->MakeShape({c->Dim(dims1, 0),
                                                                       c->Dim(dims1, 1),
-                                                                      c->Dim(dims1, 2)});
+                                                                      c->Dim(dims2, 1)});
     c->set_output(0, output_dis);
-    ::tensorflow::shape_inference::ShapeHandle output_ids = c->MakeShape({c->Dim(dims1, 0),
-                                                                      c->Dim(dims1, 1),
-                                                                      c->Dim(dims1, 2)});
+
+    // batch_size * queries_num * k
+    ::tensorflow::shape_inference::ShapeHandle output_ids = c->MakeShape({c->Dim(dims1, 0),c->Dim(dims1, 1), k, 2});
     c->set_output(1, output_ids);
+
     return Status::OK();
 });
 
+REGISTER_OP("FarthestPointSample")
+  .Attr("npoint: int")
+  .Input("inp: float32")
+  .Output("out: int32")
+  .SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+    ::tensorflow::shape_inference::ShapeHandle dims1; // batch_size * npoint * 3
+    c->WithRank(c->input(0), 3, &dims1);
+    int npoint;
+    TF_RETURN_IF_ERROR(c->GetAttr("npoint", &npoint));
+    ::tensorflow::shape_inference::ShapeHandle output = c->MakeShape({c->Dim(dims1, 0), npoint});
+    c->set_output(0, output);
+    return Status::OK();
+  });
 
-void knnLauncher(int batch_size, int qrs_num, int pts_num, int channels_num,
+
+void farthestpointsamplingLauncher(int b,int n,int m,const float * inp,float * temp,int * out);
+class FarthestPointSampleGpuOp: public OpKernel{
+  public:
+    explicit FarthestPointSampleGpuOp(OpKernelConstruction* context):OpKernel(context) {
+                    OP_REQUIRES_OK(context, context->GetAttr("npoint", &npoint_));
+                    OP_REQUIRES(context, npoint_ > 0, errors::InvalidArgument("FarthestPointSample expects positive npoint"));
+                }
+    void Compute(OpKernelContext * context)override{
+      int m = npoint_;
+
+      const Tensor& inp_tensor=context->input(0);
+      OP_REQUIRES(context,inp_tensor.dims()==3 && inp_tensor.shape().dim_size(2)==3,errors::InvalidArgument("FarthestPointSample expects (batch_size,num_points,3) inp shape"));
+      int b=inp_tensor.shape().dim_size(0);
+      int n=inp_tensor.shape().dim_size(1);
+      auto inp_flat=inp_tensor.flat<float>();
+      const float * inp=&(inp_flat(0));
+      Tensor * out_tensor;
+      OP_REQUIRES_OK(context,context->allocate_output(0,TensorShape{b,m},&out_tensor));
+      auto out_flat=out_tensor->flat<int>();
+      int * out=&(out_flat(0));
+      Tensor temp_tensor;
+      OP_REQUIRES_OK(context,context->allocate_temp(DataTypeToEnum<float>::value,TensorShape{32,n},&temp_tensor));
+      auto temp_flat=temp_tensor.flat<float>();
+      float * temp=&(temp_flat(0));
+      farthestpointsamplingLauncher(b,n,m,inp,temp,out);
+    }
+    private:
+        int npoint_;
+};
+REGISTER_KERNEL_BUILDER(Name("FarthestPointSample").Device(DEVICE_GPU),FarthestPointSampleGpuOp);
+
+void myknnLauncher(int batch_size, int qrs_num, int pts_num, int channels_num,
                  const float *queries, const float *points, int k,
                  float *out_dis, int *out_ids);
-class KNNGpuOp: public OpKernel{
+class MyKnnGpuOp: public OpKernel{
 public:
-    explicit KNNGpuOp(OpKernelConstruction* context):OpKernel(context) {
+    explicit MyKnnGpuOp(OpKernelConstruction* context):OpKernel(context) {
         OP_REQUIRES_OK(context, context->GetAttr("k", &k_));
         OP_REQUIRES(context, k_ > 0, errors::InvalidArgument("KNN expects positive k"));
+//        cout << "1" << endl;
     }
     void Compute(OpKernelContext * context)override{
         int k = k_;
-
+//        cout << "2" << endl;
         const Tensor& queries_tensor=context->input(0);
         OP_REQUIRES(context,queries_tensor.dims()==3 && queries_tensor.shape().dim_size(2)==3,
                     errors::InvalidArgument("KNN expects (batch_size,num_points,3) queries shape"));
@@ -61,18 +114,19 @@ public:
 
 
         Tensor * out_tensor_dis;
-        OP_REQUIRES_OK(context,context->allocate_output(0,TensorShape{batch_size, qrs_num, 3},&out_tensor_dis));
+        OP_REQUIRES_OK(context,context->allocate_output(0,TensorShape{batch_size, qrs_num, pts_num},&out_tensor_dis));
         auto out_flat_dis=out_tensor_dis->flat<float>();
         float * out_dis=&(out_flat_dis(0));
 
         Tensor * out_tensor_ids;
-        OP_REQUIRES_OK(context,context->allocate_output(1,TensorShape{batch_size, qrs_num, 3},&out_tensor_ids));
+        OP_REQUIRES_OK(context,context->allocate_output(1,TensorShape{batch_size, qrs_num, k, 2},&out_tensor_ids));
         auto out_flat_ids=out_tensor_ids->flat<int>();
         int * out_ids=&(out_flat_ids(0));
 
-        knnLauncher(batch_size, qrs_num, pts_num, channels_num, queries, points, k, out_dis, out_ids);
+        myknnLauncher(batch_size, qrs_num, pts_num, channels_num, queries, points, k, out_dis, out_ids);
+//        cout << "2" << endl;
     }
 private:
     int k_;
 };
-REGISTER_KERNEL_BUILDER(Name("KNN").Device(DEVICE_GPU),KNNGpuOp)
+REGISTER_KERNEL_BUILDER(Name("MyKnn").Device(DEVICE_GPU),MyKnnGpuOp);

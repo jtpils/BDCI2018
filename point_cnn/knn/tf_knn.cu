@@ -9,6 +9,7 @@
 
 // Includes
 #include <cstdio>
+#include <iostream>
 #include "cuda.h"
 
 // Constants used by the program
@@ -252,7 +253,7 @@ void printErrorMessage(cudaError_t error, int memorySize){
   printf("==================================================\n");
 }
 
-void knnLauncher(int batch_size, int qrs_num, int pts_num, int channels_num,
+void myknnLauncher(int batch_size, int qrs_num, int pts_num, int channels_num,
                  const float *queries, const float *points, int k,
                  float *out_dis, int *out_ids){
     for(int batch_id=0; batch_id<batch_size; batch_id++) {
@@ -261,8 +262,8 @@ void knnLauncher(int batch_size, int qrs_num, int pts_num, int channels_num,
         const float *ref_dev = points + pts_num * channels_num * batch_size;
         const float *query_dev = queries + qrs_num * channels_num * batch_size;
         int height = channels_num;
-        float *dist_dev = out_dis + qrs_num * pts_num;
-        int *ind_dev = out_ids + qrs_num * k;
+        float *dist_dev = out_dis + qrs_num * pts_num * batch_size;
+        int *ind_dev = out_ids + qrs_num * k * 2 * batch_size;
 
         // Grids ans threads
         dim3 g_16x16(query_width/16, ref_width/16, 1);
@@ -290,4 +291,9 @@ void knnLauncher(int batch_size, int qrs_num, int pts_num, int channels_num,
         // Kernel 3: Compute square root of k first elements
         cuParallelSqrt<<<g_k_16x16,t_k_16x16>>>(dist_dev, query_width, k);
     }
+}
+
+void farthestpointsamplingLauncher(int b,int n,int m,const float * inp,float * temp,int * out){
+    std::cout << "test" << std::endl;
+  // farthestpointsamplingKernel<<<32,512>>>(b,n,m,inp,temp,out);
 }

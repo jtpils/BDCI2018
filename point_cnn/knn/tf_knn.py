@@ -13,7 +13,7 @@ sys.path.append(BASE_DIR)
 knn_module = tf.load_op_library(os.path.join(BASE_DIR, 'tf_knn.so'))
 
 
-def knn(queries, points, k):
+def knn(k, queries, points):
     """
 
     :param queries: (N, P_queries, C)
@@ -22,10 +22,21 @@ def knn(queries, points, k):
     :return:    (N, P_queries, k, dis),  (N, P_queries, k, indices)
     """
 
-    return knn_module.KNN(k, queries, points)
+    return knn_module.my_knn(k=k, queries=queries, points=points)
 
-ops.NoGradient('KNN')
+ops.NoGradient('MyKnn')
 
+
+def farthest_point_sample(npoint,inp):
+    '''
+input:
+    int32
+    batch_size * ndataset * 3   float32
+returns:
+    batch_size * npoint         int32
+    '''
+    return knn_module.farthest_point_sample(inp, npoint)
+ops.NoGradient('FarthestPointSample')
 
 if __name__ == '__main__':
     batch_size = 8
@@ -37,8 +48,10 @@ if __name__ == '__main__':
     points = tf.random_normal([batch_size, pts_num, dim], dtype=tf.float32)
     queries = tf.random_normal([batch_size, qrs_num, dim], dtype=tf.float32)
 
-    rul = knn(queries, points, k)
+    # test = farthest_point_sample(1024, points)
+    dis, ids = knn(k, queries, points)
 
+    rul = tf.gather_nd(points, ids)
     # printer = tf.Print(rul, [rul])
 
     with tf.Session() as sess:
